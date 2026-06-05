@@ -64,6 +64,14 @@
   }
 }
 
+/* Safe-area insets for notched devices (Capacitor native shells). No-op on web. */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 @keyframes pulse-ring {
   0% {
     box-shadow: 0 0 0 0 oklch(0.72 0.22 330 / 0.7), 0 0 40px oklch(0.72 0.22 330 / 0.5);

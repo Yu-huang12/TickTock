@@ -11,7 +11,7 @@ const navItems = [
 export default function Layout() {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-background/60 backdrop-blur-xl">
+      <header className="safe-top sticky top-0 z-30 border-b border-border/60 bg-background/60 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4">
           <NavLink to="/" className="group flex items-center gap-2">
             <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary shadow-lg transition-transform group-hover:scale-105">
@@ -49,7 +49,7 @@ export default function Layout() {
         </div>
       </main>
 
-      <footer className="border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
+      <footer className="safe-bottom border-t border-border/60 py-6 text-center text-xs text-muted-foreground">
         Tick Tock Challenge · test your inner clock ⏱️
       </footer>
     </div>

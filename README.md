@@ -44,14 +44,50 @@ Online play needs a free [Supabase](https://supabase.com) project. Solo and Pass
 | `npm run dev` | Start the Vite dev server |
 | `npm run build` | Type-check and build for production |
 | `npm run preview` | Preview the production build locally |
+| `npm run sync` | Build the web app and copy it into the native projects |
+| `npm run android` | Build, sync, and open the Android project in Android Studio |
+| `npm run ios` | Build, sync, and open the iOS project in Xcode (macOS only) |
+
+## Mobile (native) builds
+
+The app is packaged for iOS and Android with [Capacitor](https://capacitorjs.com). The
+same web code runs inside a native shell; on device, the QR scanner uses the native
+camera (MLKit) instead of the browser scanner.
+
+### Android (works on Windows/macOS/Linux)
+
+Requires [Android Studio](https://developer.android.com/studio) + JDK 17.
+
+```bash
+npm run android   # builds, syncs, and opens Android Studio
+```
+
+Then press **Run** in Android Studio to launch on an emulator or device.
+
+### iOS (requires macOS + Xcode)
+
+The `android/` project is committed; generate the iOS project on a Mac:
+
+```bash
+npm install
+npx cap add ios   # first time only
+npm run ios       # builds, syncs, and opens Xcode
+```
+
+Then press **Run** in Xcode. Set a development team under **Signing & Capabilities**.
+
+> After changing web code, run `npm run sync` (or the platform script) to copy the
+> latest build into the native project.
 
 ## Project structure
 
 ```
 src/
   components/      UI + QR invite/scanner components
-  lib/             Supabase client, realtime room context, game logic
+  lib/             Supabase client, realtime room context, game logic, native bootstrap
   pages/           Solo, Online, Room, Pass & Play, How to Play
 supabase/
   schema.sql       Tables, row-level security, and realtime setup
+android/           Capacitor Android project
+capacitor.config.ts
 ```

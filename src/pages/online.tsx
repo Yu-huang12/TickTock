@@ -13,6 +13,7 @@ import {
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { useRoom, type Profile } from "@/lib/room-context";
 import { playerColors } from "@/lib/game-utils";
+import { hasNativeScanner, scanQrCodeNative } from "@/lib/qr-scan";
 
 const QrScanner = lazy(() =>
   import("@/components/QrScanner").then((m) => ({ default: m.QrScanner }))
@@ -91,6 +92,20 @@ export default function OnlinePage() {
       void handleJoin(found);
     } else {
       setError("That QR code isn't a Tick Tock room.");
+    }
+  };
+
+  const handleScanClick = async () => {
+    setError(null);
+    if (hasNativeScanner) {
+      try {
+        const text = await scanQrCodeNative();
+        if (text) onScan(text);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not start the camera.");
+      }
+    } else {
+      setScanning(true);
     }
   };
 
@@ -246,7 +261,7 @@ export default function OnlinePage() {
             className="flex-1 text-center text-lg font-bold tracking-[0.3em] uppercase"
           />
           <button
-            onClick={() => setScanning(true)}
+            onClick={handleScanClick}
             className="flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-3 text-sm font-medium transition-colors hover:bg-muted"
             title="Scan QR code"
           >
