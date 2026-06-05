@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500"><defs>
+  <linearGradient id="brand" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+    <stop offset="0" stop-color="#ec4899"/>
+    <stop offset="0.5" stop-color="#a855f7"/>
+    <stop offset="1" stop-color="#06b6d4"/>
+  </linearGradient></defs><rect width="1024" height="500" fill="#0b0b14"/><rect width="1024" height="500" fill="url(#brand)" opacity="0.18"/><g transform="translate(250 250) scale(0.62)">
+  <g stroke="#ffffff" fill="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="-57" y="-345" width="114" height="92" rx="30"/>
+    <rect x="-26" y="-287" width="52" height="84" rx="18"/>
+    <rect x="172" y="-190" width="76" height="50" rx="18" transform="rotate(45 210 -165)"/>
+    <circle cx="0" cy="40" r="250" fill="none" stroke-width="48"/>
+    <path d="M0 40 V -170" fill="none" stroke-width="34"/>
+    <path d="M0 40 L 156 -42" fill="none" stroke-width="34"/>
+    <circle cx="0" cy="40" r="28" stroke="none"/>
+  </g></g><text x="470" y="232" font-family="Segoe UI, Arial, sans-serif" font-size="86" font-weight="800" fill="#ffffff">Tick Tock</text><text x="470" y="318" font-family="Segoe UI, Arial, sans-serif" font-size="86" font-weight="800" fill="#ffffff">Challenge</text><text x="472" y="372" font-family="Segoe UI, Arial, sans-serif" font-size="30" fill="#c4b5fd">Test your inner clock</text></svg>

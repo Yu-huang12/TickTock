@@ -83,6 +83,29 @@ for (const [name, svg, size] of [
 const render = (svg, w, h = w) =>
   sharp(Buffer.from(svg)).resize(w, h, { fit: "fill" }).png().toBuffer();
 
+// ── Store assets ──────────────────────────────────────────────────────────
+// Apple requires a 1024x1024 icon with NO alpha channel (flatten onto the bg).
+await sharp(Buffer.from(iconOnly))
+  .resize(1024, 1024)
+  .flatten({ background: "#0b0b14" })
+  .png()
+  .toFile(join(assets, "icon-appstore-1024.png"));
+
+// Google Play feature graphic: 1024x500 banner with logo + wordmark.
+const feature = svgDoc(
+  1024,
+  500,
+  `<defs>${gradient}</defs>` +
+    `<rect width="1024" height="500" fill="#0b0b14"/>` +
+    `<rect width="1024" height="500" fill="url(#brand)" opacity="0.18"/>` +
+    `<g transform="translate(250 250) scale(0.62)">${glyph("#ffffff")}</g>` +
+    `<text x="470" y="232" font-family="Segoe UI, Arial, sans-serif" font-size="86" font-weight="800" fill="#ffffff">Tick Tock</text>` +
+    `<text x="470" y="318" font-family="Segoe UI, Arial, sans-serif" font-size="86" font-weight="800" fill="#ffffff">Challenge</text>` +
+    `<text x="472" y="372" font-family="Segoe UI, Arial, sans-serif" font-size="30" fill="#c4b5fd">Test your inner clock</text>`
+);
+writeFileSync(join(assets, "feature-graphic.svg"), feature);
+await sharp(Buffer.from(feature)).resize(1024, 500).png().toFile(join(assets, "feature-graphic.png"));
+
 const circleMask = (size) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#fff"/></svg>`;
 
