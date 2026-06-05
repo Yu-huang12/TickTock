@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "sync": "npm run build && cap sync",
     "assets": "node scripts/generate-assets.mjs",
+    "screenshots": "node scripts/screenshots.mjs",
     "android": "npm run build && cap sync android && cap open android",
     "ios": "npm run build && cap sync ios && cap open ios"
   },
@@ -40,6 +41,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
+    "playwright": "^1.60.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.8.0",

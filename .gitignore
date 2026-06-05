@@ -32,3 +32,8 @@ pnpm-debug.log*
 
 # Generated PNG sources (regenerate with `npm run assets`; SVG sources are kept)
 assets/*.png
+
+# Native build outputs / local SDK config
+*.apk
+*.aab
+android/local.properties
