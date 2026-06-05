@@ -37,3 +37,4 @@ assets/*.png
 *.apk
 *.aab
 android/local.properties
+.vercel
