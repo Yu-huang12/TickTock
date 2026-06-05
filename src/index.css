@@ -52,6 +52,11 @@
   * {
     @apply border-border;
   }
+  html {
+    /* Stop iOS double-tap-to-zoom and pinch-zoom in the native shell. */
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+  }
   body {
     @apply text-foreground;
     background:
@@ -61,6 +66,21 @@
       var(--background);
     background-attachment: fixed;
     min-height: 100vh;
+    /* Kill the grey tap flash and the elastic scroll bounce on mobile. */
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+    /* Treat the UI like an app chrome: no accidental text selection… */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  /* …but keep selection/callout where typing or copying is expected. */
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
   }
 }
 

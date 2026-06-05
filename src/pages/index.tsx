@@ -25,6 +25,7 @@ import {
   tierEmoji,
   type Tier,
 } from "@/lib/game-utils";
+import { hapticTap, hapticResult, keepAwake, allowSleep } from "@/lib/native";
 
 type Phase = "idle" | "running" | "result";
 
@@ -73,6 +74,8 @@ export default function HomePage() {
   const start = () => {
     setPhase("running");
     startRef.current = performance.now();
+    void hapticTap();
+    void keepAwake();
   };
 
   const stop = () => {
@@ -89,6 +92,8 @@ export default function HomePage() {
     setHistory((h) => [...h, record]);
     setResult(record);
     setPhase("result");
+    void hapticResult(record.tier === "Perfect" || record.tier === "Great");
+    void allowSleep();
   };
 
   const next = () => {

@@ -23,6 +23,7 @@ import {
   playerColors,
   type Tier,
 } from "@/lib/game-utils";
+import { hapticTap, hapticResult, keepAwake, allowSleep } from "@/lib/native";
 
 interface Player {
   id: string;
@@ -101,6 +102,8 @@ export default function MultiplayerPage() {
   const startTurn = () => {
     startRef.current = performance.now();
     setTurnPhase("running");
+    void hapticTap();
+    void keepAwake();
   };
 
   const stopTurn = () => {
@@ -111,6 +114,8 @@ export default function MultiplayerPage() {
     setTurnResult({ elapsed, diff, tier, points });
     setPlayers((ps) => ps.map((p, i) => (i === turnIdx ? { ...p, total: p.total + points } : p)));
     setTurnPhase("done");
+    void hapticResult(tier === "Perfect" || tier === "Great");
+    void allowSleep();
   };
 
   const advance = () => {

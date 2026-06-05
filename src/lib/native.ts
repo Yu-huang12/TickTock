@@ -25,3 +25,49 @@ export async function initNative(): Promise<void> {
     /* splash plugin unavailable — ignore */
   }
 }
+
+/** A short tactile tap for start/stop button presses. No-op on web. */
+export async function hapticTap(): Promise<void> {
+  if (!isNative) return;
+  try {
+    const { Haptics, ImpactStyle } = await import("@capacitor/haptics");
+    await Haptics.impact({ style: ImpactStyle.Medium });
+  } catch {
+    /* haptics plugin unavailable — ignore */
+  }
+}
+
+/** A success or warning buzz for round results. No-op on web. */
+export async function hapticResult(success: boolean): Promise<void> {
+  if (!isNative) return;
+  try {
+    const { Haptics, NotificationType } = await import("@capacitor/haptics");
+    await Haptics.notification({
+      type: success ? NotificationType.Success : NotificationType.Warning,
+    });
+  } catch {
+    /* haptics plugin unavailable — ignore */
+  }
+}
+
+/** Prevent the screen from dimming/locking during a round. No-op on web. */
+export async function keepAwake(): Promise<void> {
+  if (!isNative) return;
+  try {
+    const { KeepAwake } = await import("@capacitor-community/keep-awake");
+    await KeepAwake.keepAwake();
+  } catch {
+    /* keep-awake plugin unavailable — ignore */
+  }
+}
+
+/** Allow the screen to dim/lock again once a round ends. No-op on web. */
+export async function allowSleep(): Promise<void> {
+  if (!isNative) return;
+  try {
+    const { KeepAwake } = await import("@capacitor-community/keep-awake");
+    await KeepAwake.allowSleep();
+  } catch {
+    /* keep-awake plugin unavailable — ignore */
+  }
+}
