@@ -24,6 +24,7 @@ import {
   type Tier,
 } from "@/lib/game-utils";
 import { hapticTap, hapticResult, keepAwake, allowSleep } from "@/lib/native";
+import { Segmented } from "@/components/ui/segmented";
 
 interface Player {
   id: string;
@@ -182,7 +183,7 @@ export default function MultiplayerPage() {
           </p>
         </header>
 
-        <Card className="gap-4 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+        <Card className="app-card gap-4 p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">Players</h2>
             <button
@@ -229,37 +230,16 @@ export default function MultiplayerPage() {
           </div>
         </Card>
 
-        <Card className="gap-4 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+        <Card className="app-card gap-4 p-5">
           <h2 className="font-semibold">Rounds per player</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {ROUND_OPTIONS.map((r) => {
-              const active = totalRounds === r;
-              return (
-                <button
-                  key={r}
-                  onClick={() => setTotalRounds(r)}
-                  className={`flex flex-col items-center justify-center rounded-xl border-2 py-5 transition-all ${
-                    active
-                      ? "border-primary bg-primary/10 shadow-[0_0_25px_-6px_rgba(236,72,153,0.6)]"
-                      : "border-border/60 bg-muted/20 hover:border-border"
-                  }`}
-                >
-                  <span className="text-2xl font-black tabular-nums">{r}</span>
-                  <span className="text-xs text-muted-foreground">rounds</span>
-                </button>
-              );
-            })}
-          </div>
+          <Segmented options={ROUND_OPTIONS} value={totalRounds} onChange={setTotalRounds} />
           <p className="text-center text-xs text-muted-foreground">
             Total turns: {players.length} players × {totalRounds} rounds ={" "}
             <span className="font-bold text-foreground">{totalTurns}</span>
           </p>
         </Card>
 
-        <button
-          onClick={startGame}
-          className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 py-4 text-lg font-bold text-white shadow-[0_10px_40px_-10px_rgba(168,85,247,0.7)] transition-transform active:scale-[0.98]"
-        >
+        <button onClick={startGame} className="btn-cta">
           <Play className="size-5 fill-current" /> Start Game
         </button>
       </div>
@@ -281,7 +261,7 @@ export default function MultiplayerPage() {
           <p className="text-xl font-bold text-accent">{winner.total.toLocaleString()} pts</p>
         </div>
 
-        <Card className="w-full gap-0 divide-y divide-border/60 p-0">
+        <Card className="app-card w-full gap-0 divide-y divide-border/60 p-0">
           {ranking.map((p, i) => {
             const c = playerColors[p.colorIdx];
             return (
@@ -340,7 +320,7 @@ export default function MultiplayerPage() {
         Round {round}/{totalRounds}
       </Badge>
 
-      <Card className="relative w-full overflow-hidden border-border/60 bg-card/70 backdrop-blur-xl">
+      <Card className="app-card relative w-full overflow-hidden">
         {celebrate && <Confetti />}
         <div className="flex flex-col items-center gap-5 px-6 py-8 text-center">
           <div

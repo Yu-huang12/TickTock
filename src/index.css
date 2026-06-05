@@ -60,15 +60,15 @@
   body {
     @apply text-foreground;
     background:
-      radial-gradient(ellipse at top left, oklch(0.32 0.18 320 / 0.35), transparent 50%),
-      radial-gradient(ellipse at bottom right, oklch(0.32 0.18 220 / 0.35), transparent 50%),
-      radial-gradient(ellipse at center, oklch(0.25 0.1 280 / 0.4), transparent 70%),
+      radial-gradient(120% 80% at 50% -10%, oklch(0.34 0.19 320 / 0.4), transparent 60%),
+      radial-gradient(90% 70% at 100% 110%, oklch(0.32 0.18 220 / 0.38), transparent 60%),
+      radial-gradient(70% 60% at 0% 100%, oklch(0.3 0.16 280 / 0.35), transparent 60%),
       var(--background);
     background-attachment: fixed;
-    min-height: 100vh;
+    min-height: 100dvh;
     /* Kill the grey tap flash and the elastic scroll bounce on mobile. */
     -webkit-tap-highlight-color: transparent;
-    overscroll-behavior: none;
+    overscroll-behavior-y: none;
     /* Treat the UI like an app chrome: no accidental text selection… */
     -webkit-user-select: none;
     user-select: none;
@@ -90,6 +90,38 @@
 }
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+@layer components {
+  /* Frosted card surface used across every screen. */
+  .app-card {
+    @apply rounded-3xl border border-white/10 bg-card/55 shadow-xl shadow-black/30 backdrop-blur-xl;
+  }
+
+  /* Primary neon call-to-action button. */
+  .btn-cta {
+    @apply flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 py-4 text-base font-bold text-white shadow-[0_14px_40px_-12px_rgba(168,85,247,0.8)] transition-transform active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60;
+  }
+
+  /* Secondary call-to-action button. */
+  .btn-cta-secondary {
+    @apply flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 py-4 text-base font-bold text-foreground transition-colors hover:bg-white/10 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-60;
+  }
+
+  /* Fixed bottom tab bar (mobile navigation). */
+  .tab-bar {
+    @apply fixed inset-x-0 bottom-0 z-40 flex items-stretch justify-around border-t border-white/10 bg-background/80 backdrop-blur-2xl;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Hide scrollbars on horizontally scrollable strips. */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @keyframes pulse-ring {

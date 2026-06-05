@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Segmented } from "@/components/ui/segmented";
 import { Confetti } from "@/components/Confetti";
 import { QrInvite } from "@/components/QrInvite";
 import {
@@ -176,7 +177,7 @@ export default function RoomPage() {
         </header>
 
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="items-center gap-3 border-border/60 bg-card/60 p-5 text-center backdrop-blur-xl">
+          <Card className="app-card items-center gap-3 p-5 text-center">
             <h2 className="font-semibold">Scan to join</h2>
             <QrInvite value={inviteUrl} size={180} />
             <p className="text-xs text-muted-foreground">
@@ -184,7 +185,7 @@ export default function RoomPage() {
             </p>
           </Card>
 
-          <Card className="gap-3 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+          <Card className="app-card gap-3 p-5">
             <h2 className="flex items-center gap-2 font-semibold">
               <Users className="size-4" /> Players ({roster.length})
             </h2>
@@ -219,37 +220,19 @@ export default function RoomPage() {
         </div>
 
         {isHost ? (
-          <Card className="gap-4 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+          <Card className="app-card gap-4 p-5">
             <h2 className="font-semibold">Rounds per player</h2>
-            <div className="grid grid-cols-3 gap-3">
-              {ROUND_OPTIONS.map((r) => {
-                const active = rounds === r;
-                return (
-                  <button
-                    key={r}
-                    onClick={() => setRounds(r)}
-                    className={`flex flex-col items-center justify-center rounded-xl border-2 py-4 transition-all ${
-                      active
-                        ? "border-primary bg-primary/10 shadow-[0_0_25px_-6px_rgba(236,72,153,0.6)]"
-                        : "border-border/60 bg-muted/20 hover:border-border"
-                    }`}
-                  >
-                    <span className="text-2xl font-black tabular-nums">{r}</span>
-                    <span className="text-xs text-muted-foreground">rounds</span>
-                  </button>
-                );
-              })}
-            </div>
+            <Segmented options={ROUND_OPTIONS} value={rounds} onChange={setRounds} />
             <button
               onClick={() => startGame(rounds)}
               disabled={roster.length < 1}
-              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 py-3.5 text-base font-bold text-white shadow-[0_10px_40px_-12px_rgba(168,85,247,0.7)] transition-transform active:scale-[0.98] disabled:opacity-60"
+              className="btn-cta"
             >
               <Play className="size-5 fill-current" /> Start Game
             </button>
           </Card>
         ) : (
-          <Card className="items-center gap-2 border-border/60 bg-card/60 p-6 text-center backdrop-blur-xl">
+          <Card className="app-card items-center gap-2 p-6 text-center">
             <Hourglass className="size-6 animate-pulse text-secondary" />
             <p className="font-medium">Waiting for the host to start&hellip;</p>
           </Card>
@@ -284,7 +267,7 @@ export default function RoomPage() {
           </div>
         )}
 
-        <Card className="w-full gap-0 divide-y divide-border/60 border-border/60 bg-card/60 p-0 backdrop-blur-xl">
+        <Card className="app-card w-full gap-0 divide-y divide-border/60 p-0">
           {totals.map((p, i) => {
             const c = playerColors[p.colorIdx % playerColors.length];
             return (
@@ -329,7 +312,7 @@ export default function RoomPage() {
   return (
     <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2">
-        <Card className="relative overflow-hidden border-border/60 bg-card/60 p-0 backdrop-blur-xl">
+        <Card className="app-card relative overflow-hidden p-0">
           {celebrate && <Confetti />}
           <div className="flex flex-col items-center gap-5 px-6 py-8 text-center">
             <Badge variant="outline">
@@ -404,7 +387,7 @@ export default function RoomPage() {
         </Card>
       </div>
 
-      <Card className="h-fit gap-3 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+      <Card className="app-card h-fit gap-3 p-5">
         <h2 className="flex items-center gap-2 font-bold">
           <Trophy className="size-4 text-accent" /> Leaderboard
         </h2>

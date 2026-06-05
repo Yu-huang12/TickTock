@@ -129,103 +129,102 @@ export default function HomePage() {
   const celebrate = result && (result.tier === "Perfect" || result.tier === "Great");
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card/50 px-5 py-4 backdrop-blur">
-        <p className="text-sm">
+    <div className="flex flex-col gap-5">
+      <Link
+        to="/multiplayer"
+        className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-card/40 px-4 py-3 backdrop-blur transition-colors active:bg-card/60"
+      >
+        <span className="text-sm">
           <span className="font-semibold">Solo mode</span>{" "}
           <span className="text-muted-foreground">· play with friends?</span>
-        </p>
-        <Link
-          to="/multiplayer"
-          className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <Users className="size-4" /> Try Multiplayer
-        </Link>
-      </div>
+        </span>
+        <span className="flex items-center gap-1.5 text-sm font-medium text-secondary">
+          <Users className="size-4" /> Multiplayer
+        </span>
+      </Link>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="flex flex-col gap-6 lg:col-span-2">
-          <Card className="border-border/60 bg-card/60 p-0 backdrop-blur-xl">
-            <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Card className="app-card relative overflow-hidden p-0 lg:col-span-2">
+          {celebrate && <Confetti />}
+          <div className="flex flex-col items-center gap-6 px-6 py-8">
+            <div className="flex flex-col items-center gap-2 text-center">
               <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
                 <Crosshair className="size-3.5" /> Your target
               </p>
-              <p className="text-7xl font-black tabular-nums">
+              <p className="text-7xl font-black leading-none tabular-nums">
                 <span className="bg-gradient-to-br from-cyan-300 to-blue-500 bg-clip-text text-transparent">
                   {target.toFixed(1)}
                 </span>
                 <span className="ml-1 text-3xl font-bold text-cyan-300/70">s</span>
               </p>
-              <p className="max-w-sm text-sm text-muted-foreground">
-                Press <span className="font-semibold text-foreground">Start</span>, count in
-                your head, then stop as close to this as you can.
-              </p>
             </div>
-          </Card>
 
-          <Card className="relative overflow-hidden border-border/60 bg-card/60 p-0 backdrop-blur-xl">
-            {celebrate && <Confetti />}
-            <div className="flex flex-col items-center gap-5 px-6 py-10">
-              {phase === "idle" && (
-                <button
-                  onClick={start}
-                  className="flex h-44 w-44 flex-col items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-[0_0_55px_-8px_rgba(236,72,153,0.6)] transition-transform active:scale-95"
-                >
-                  <Play className="size-9 fill-current" />
-                  <span className="mt-1 text-lg font-bold tracking-wide">START</span>
-                </button>
-              )}
+            {phase === "idle" && (
+              <button
+                onClick={start}
+                className="flex h-44 w-44 flex-col items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-[0_0_55px_-8px_rgba(236,72,153,0.6)] transition-transform active:scale-95"
+              >
+                <Play className="size-9 fill-current" />
+                <span className="mt-1 text-lg font-bold tracking-wide">START</span>
+              </button>
+            )}
 
-              {phase === "running" && (
-                <button
-                  onClick={stop}
-                  className="pulse-ring flex h-44 w-44 flex-col items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-2xl transition-transform active:scale-95"
-                >
-                  <Square className="size-8 fill-current" />
-                  <span className="mt-1 text-lg font-bold tracking-wide">STOP</span>
-                </button>
-              )}
+            {phase === "running" && (
+              <button
+                onClick={stop}
+                className="pulse-ring flex h-44 w-44 flex-col items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-2xl transition-transform active:scale-95"
+              >
+                <Square className="size-8 fill-current" />
+                <span className="mt-1 text-lg font-bold tracking-wide">STOP</span>
+              </button>
+            )}
 
-              {phase === "result" && (
-                <button
-                  onClick={next}
-                  className="glow-pop flex h-44 w-44 flex-col items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-[0_0_70px_-5px_rgba(168,85,247,0.7)] transition-transform active:scale-95"
-                >
-                  <Sparkles className="size-8" />
-                  <span className="mt-1 text-lg font-bold tracking-wide">NEXT</span>
-                </button>
-              )}
+            {phase === "result" && (
+              <button
+                onClick={next}
+                className="glow-pop flex h-44 w-44 flex-col items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-[0_0_70px_-5px_rgba(168,85,247,0.7)] transition-transform active:scale-95"
+              >
+                <Sparkles className="size-8" />
+                <span className="mt-1 text-lg font-bold tracking-wide">NEXT</span>
+              </button>
+            )}
 
-              {phase === "result" && result && (
-                <>
-                  <div className="flex items-center gap-2">
-                    <Badge className={`px-3 py-1 text-sm ${tierStyle[result.tier]}`}>
-                      {tierEmoji[result.tier]} {result.tier}
-                    </Badge>
-                    <span className="text-xl font-bold text-accent">
-                      +{result.points.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="grid w-full max-w-sm grid-cols-3 gap-3">
-                    <MiniStat label="Target" value={`${target.toFixed(1)}s`} />
-                    <MiniStat label="You" value={`${result.elapsed.toFixed(2)}s`} />
-                    <MiniStat label="Off by" value={`${result.diff.toFixed(2)}s`} />
-                  </div>
-                </>
-              )}
+            {phase === "result" && result && (
+              <>
+                <div className="flex items-center gap-2">
+                  <Badge className={`px-3 py-1 text-sm ${tierStyle[result.tier]}`}>
+                    {tierEmoji[result.tier]} {result.tier}
+                  </Badge>
+                  <span className="text-xl font-bold text-accent">
+                    +{result.points.toLocaleString()}
+                  </span>
+                </div>
+                <div className="grid w-full max-w-sm grid-cols-3 gap-3">
+                  <MiniStat label="Target" value={`${target.toFixed(1)}s`} />
+                  <MiniStat label="You" value={`${result.elapsed.toFixed(2)}s`} />
+                  <MiniStat label="Off by" value={`${result.diff.toFixed(2)}s`} />
+                </div>
+              </>
+            )}
 
-              <p className="mt-1 text-xs text-muted-foreground">
-                or press{" "}
-                <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
-                  Space
-                </kbd>
+            {phase !== "result" && (
+              <p className="max-w-xs text-center text-sm text-muted-foreground">
+                Press <span className="font-semibold text-foreground">Start</span>, count in your
+                head, then stop as close to the target as you can.
               </p>
-            </div>
-          </Card>
-        </div>
+            )}
 
-        <div className="flex flex-col gap-6">
-          <Card className="gap-4 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+            <p className="text-xs text-muted-foreground">
+              or press{" "}
+              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+                Space
+              </kbd>
+            </p>
+          </div>
+        </Card>
+
+        <div className="flex flex-col gap-5">
+          <Card className="app-card gap-4 p-5">
             <div className="flex items-center justify-between">
               <h2 className="flex items-center gap-2 font-bold">
                 <Trophy className="size-4 text-accent" /> Your stats
@@ -265,7 +264,7 @@ export default function HomePage() {
             </div>
           </Card>
 
-          <Card className="gap-3 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+          <Card className="app-card gap-3 p-5">
             <h2 className="flex items-center gap-2 font-bold">
               <History className="size-4 text-secondary" /> Recent rounds
             </h2>

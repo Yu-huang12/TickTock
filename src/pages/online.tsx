@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Plus,
   LogIn,
@@ -176,7 +177,7 @@ export default function OnlinePage() {
         </p>
       </header>
 
-      <Card className="gap-4 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+      <Card className="app-card gap-4 p-5">
         <h2 className="font-semibold">You</h2>
         <div className="flex items-center gap-3">
           <button
@@ -211,35 +212,13 @@ export default function OnlinePage() {
         </div>
       </Card>
 
-      <Card className="gap-4 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+      <Card className="app-card gap-4 p-5">
         <h2 className="font-semibold">Create a room</h2>
         <div>
           <p className="mb-2 text-sm text-muted-foreground">Rounds per player</p>
-          <div className="grid grid-cols-3 gap-3">
-            {ROUND_OPTIONS.map((r) => {
-              const active = rounds === r;
-              return (
-                <button
-                  key={r}
-                  onClick={() => setRounds(r)}
-                  className={`flex flex-col items-center justify-center rounded-xl border-2 py-4 transition-all ${
-                    active
-                      ? "border-primary bg-primary/10 shadow-[0_0_25px_-6px_rgba(236,72,153,0.6)]"
-                      : "border-border/60 bg-muted/20 hover:border-border"
-                  }`}
-                >
-                  <span className="text-2xl font-black tabular-nums">{r}</span>
-                  <span className="text-xs text-muted-foreground">rounds</span>
-                </button>
-              );
-            })}
-          </div>
+          <Segmented options={ROUND_OPTIONS} value={rounds} onChange={setRounds} />
         </div>
-        <button
-          onClick={handleCreate}
-          disabled={busy !== null}
-          className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 py-3.5 text-base font-bold text-white shadow-[0_10px_40px_-12px_rgba(168,85,247,0.7)] transition-transform active:scale-[0.98] disabled:opacity-60"
-        >
+        <button onClick={handleCreate} disabled={busy !== null} className="btn-cta">
           {busy === "create" ? (
             <Loader2 className="size-5 animate-spin" />
           ) : (
@@ -249,7 +228,7 @@ export default function OnlinePage() {
         </button>
       </Card>
 
-      <Card className="gap-4 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+      <Card className="app-card gap-4 p-5">
         <h2 className="font-semibold">Join a room</h2>
         <div className="flex gap-2">
           <Input
@@ -271,7 +250,7 @@ export default function OnlinePage() {
         <button
           onClick={() => handleJoin()}
           disabled={busy !== null}
-          className="flex items-center justify-center gap-2 rounded-xl border border-border bg-secondary/15 py-3.5 text-base font-bold text-foreground transition-colors hover:bg-secondary/25 disabled:opacity-60"
+          className="btn-cta-secondary"
         >
           {busy === "join" ? (
             <Loader2 className="size-5 animate-spin" />

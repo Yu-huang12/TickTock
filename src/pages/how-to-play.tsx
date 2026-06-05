@@ -45,7 +45,7 @@ export default function HowToPlayPage() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         {steps.map((s, i) => (
-          <Card key={i} className="flex-row items-start gap-3 p-4">
+          <Card key={i} className="app-card flex-row items-start gap-3 p-4">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary text-primary-foreground">
               <s.icon className="h-5 w-5" />
             </span>
@@ -59,7 +59,7 @@ export default function HowToPlayPage() {
         ))}
       </div>
 
-      <Card className="gap-4 p-5">
+      <Card className="app-card gap-4 p-5">
         <h2 className="flex items-center gap-2 text-lg font-bold">
           <Trophy className="h-5 w-5 text-accent" /> Scoring tiers
         </h2>
@@ -86,7 +86,7 @@ export default function HowToPlayPage() {
         </p>
       </Card>
 
-      <Card className="gap-2 p-5">
+      <Card className="app-card gap-2 p-5">
         <h2 className="font-bold">Pro tips</h2>
         <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
           <li>Count in a steady &ldquo;one-Mississippi&rdquo; rhythm rather than racing.</li>

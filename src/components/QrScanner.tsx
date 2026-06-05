@@ -47,8 +47,8 @@ export function QrScanner({
   }, [onResult]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4 backdrop-blur">
-      <div className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-border/60 bg-card shadow-2xl">
+    <div className="safe-top safe-bottom fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4 backdrop-blur">
+      <div className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-card shadow-2xl">
         <div className="flex items-center justify-between px-4 py-3">
           <h2 className="flex items-center gap-2 font-semibold">
             <ScanLine className="size-4 text-secondary" /> Scan room QR
