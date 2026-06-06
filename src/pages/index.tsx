@@ -23,6 +23,7 @@ import {
   pointsFor,
   tierStyle,
   tierEmoji,
+  celebrates,
   type Tier,
 } from "@/lib/game-utils";
 import { hapticTap, hapticResult, keepAwake, allowSleep } from "@/lib/native";
@@ -54,8 +55,10 @@ function loadHistory(): RoundRecord[] {
 
 const tierBar: Record<Tier, string> = {
   Perfect: "from-yellow-400 to-amber-500",
+  "So Close": "from-orange-400 to-red-500",
   Great: "from-pink-500 to-rose-500",
   Good: "from-cyan-500 to-blue-500",
+  Close: "from-sky-500 to-indigo-500",
   Off: "from-violet-500 to-purple-600",
 };
 
@@ -87,7 +90,7 @@ export default function HomePage() {
   const streak = useMemo(() => {
     let s = 0;
     for (let i = history.length - 1; i >= 0; i--) {
-      if (history[i].tier === "Perfect" || history[i].tier === "Great") s++;
+      if (celebrates(history[i].diff)) s++;
       else break;
     }
     return s;
@@ -115,7 +118,7 @@ export default function HomePage() {
     setHistory((h) => [...h, record]);
     setResult(record);
     setPhase("result");
-    void hapticResult(record.tier === "Perfect" || record.tier === "Great");
+    void hapticResult(celebrates(record.diff));
     void allowSleep();
   };
 
@@ -149,7 +152,7 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const celebrate = result && (result.tier === "Perfect" || result.tier === "Great");
+  const celebrate = result && celebrates(result.diff);
 
   return (
     <div className="flex flex-col gap-5">

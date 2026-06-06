@@ -1,4 +1,4 @@
-export type Tier = "Perfect" | "Great" | "Good" | "Off";
+export type Tier = "Perfect" | "So Close" | "Great" | "Good" | "Close" | "Off";
 
 export function randomTarget(): number {
   const v = 1 + Math.random() * 8.9;
@@ -6,10 +6,17 @@ export function randomTarget(): number {
 }
 
 export function tierFor(diff: number): Tier {
-  if (diff < 0.1) return "Perfect";
-  if (diff < 0.3) return "Great";
-  if (diff < 0.6) return "Good";
+  if (diff < 0.03) return "Perfect";
+  if (diff < 0.08) return "So Close";
+  if (diff < 0.15) return "Great";
+  if (diff < 0.3) return "Good";
+  if (diff < 0.6) return "Close";
   return "Off";
+}
+
+/** Whether a stop is close enough to celebrate (confetti, success haptic, streak). */
+export function celebrates(diff: number): boolean {
+  return diff < 0.15; // Perfect, So Close, or Great
 }
 
 export function pointsFor(diff: number): number {
@@ -19,16 +26,20 @@ export function pointsFor(diff: number): number {
 
 export const tierStyle: Record<Tier, string> = {
   Perfect: "bg-gradient-to-r from-yellow-400 to-amber-500 text-black",
+  "So Close": "bg-gradient-to-r from-orange-400 to-red-500 text-white",
   Great: "bg-gradient-to-r from-pink-500 to-rose-500 text-white",
   Good: "bg-gradient-to-r from-cyan-500 to-blue-500 text-white",
+  Close: "bg-gradient-to-r from-sky-500 to-indigo-500 text-white",
   Off: "bg-gradient-to-r from-violet-500 to-purple-600 text-white",
 };
 
 export const tierEmoji: Record<Tier, string> = {
   Perfect: "🎯",
-  Great: "🔥",
+  "So Close": "🔥",
+  Great: "⚡",
   Good: "✨",
-  Off: "⏱️",
+  Close: "👍",
+  Off: "💨",
 };
 
 export const playerColors = [

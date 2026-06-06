@@ -27,6 +27,7 @@ import {
   pointsFor,
   tierStyle,
   tierEmoji,
+  celebrates,
   playerColors,
   type Tier,
 } from "@/lib/game-utils";
@@ -389,8 +390,7 @@ export default function RoomPage() {
   }
 
   // ──────────────────────────────────────────────────────── PLAYING
-  const celebrate =
-    localResult && (localResult.tier === "Perfect" || localResult.tier === "Great");
+  const celebrate = localResult && celebrates(localResult.diff);
 
   return (
     <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-3">

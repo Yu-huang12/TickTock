@@ -4,9 +4,11 @@ import { Play, Square, Target, Sparkles, Trophy } from "lucide-react";
 import { tierStyle, tierEmoji, pointsFor, type Tier } from "@/lib/game-utils";
 
 const tiers: { tier: Tier; range: string; boundary: number }[] = [
-  { tier: "Perfect", range: "within 0.10s", boundary: 0 },
-  { tier: "Great", range: "within 0.30s", boundary: 0.1 },
-  { tier: "Good", range: "within 0.60s", boundary: 0.3 },
+  { tier: "Perfect", range: "within 0.03s", boundary: 0 },
+  { tier: "So Close", range: "within 0.08s", boundary: 0.03 },
+  { tier: "Great", range: "within 0.15s", boundary: 0.08 },
+  { tier: "Good", range: "within 0.30s", boundary: 0.15 },
+  { tier: "Close", range: "within 0.60s", boundary: 0.3 },
   { tier: "Off", range: "0.60s or more", boundary: 0.6 },
 ];
 
@@ -91,7 +93,7 @@ export default function HowToPlayPage() {
         <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
           <li>Count in a steady &ldquo;one-Mississippi&rdquo; rhythm rather than racing.</li>
           <li>Tap your foot or nod to keep a beat — your body keeps better time than your mind.</li>
-          <li>Chain Perfect and Great stops in Solo to build a streak.</li>
+          <li>Chain Great-or-better stops in Solo to build a streak.</li>
           <li>In Multiplayer, everyone faces the same target each round — pure bragging rights.</li>
         </ul>
       </Card>

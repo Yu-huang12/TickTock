@@ -20,6 +20,7 @@ import {
   pointsFor,
   tierStyle,
   tierEmoji,
+  celebrates,
   playerColors,
   type Tier,
 } from "@/lib/game-utils";
@@ -125,7 +126,7 @@ export default function MultiplayerPage() {
     setTurnResult({ elapsed, diff, tier, points });
     setPlayers((ps) => ps.map((p, i) => (i === turnIdx ? { ...p, total: p.total + points } : p)));
     setTurnPhase("done");
-    void hapticResult(tier === "Perfect" || tier === "Great");
+    void hapticResult(celebrates(diff));
     void allowSleep();
   };
 
@@ -301,8 +302,7 @@ export default function MultiplayerPage() {
   // ----------------------------------------------------------------- PLAY
   const current = players[turnIdx];
   const c = playerColors[current.colorIdx];
-  const celebrate =
-    turnResult && (turnResult.tier === "Perfect" || turnResult.tier === "Great");
+  const celebrate = turnResult && celebrates(turnResult.diff);
   const isFinalTurn = turnIdx === players.length - 1 && round >= totalRounds;
 
   return (
