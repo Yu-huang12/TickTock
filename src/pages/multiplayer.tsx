@@ -345,14 +345,14 @@ export default function MultiplayerPage() {
           </div>
 
           {turnPhase === "idle" && (
-            <Button
-              size="lg"
+            <button
               onClick={startTurn}
-              className="h-16 w-16 rounded-full p-0"
+              className="flex h-36 w-36 flex-col items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-primary-foreground shadow-[0_0_55px_-8px_rgba(236,72,153,0.6)] transition-transform active:scale-95"
               aria-label="Start timer"
             >
-              <Play className="size-7" />
-            </Button>
+              <Play className="h-7 w-7 fill-current" />
+              <span className="mt-1 font-bold">START</span>
+            </button>
           )}
 
           {turnPhase === "running" && (
