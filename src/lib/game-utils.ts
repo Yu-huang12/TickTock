@@ -50,3 +50,32 @@ export const playerColors = [
   { name: "Emerald", bg: "from-emerald-400 to-teal-500", solid: "bg-emerald-500", ring: "ring-emerald-500", text: "text-emerald-300" },
   { name: "Orange", bg: "from-orange-400 to-red-500", solid: "bg-orange-500", ring: "ring-orange-500", text: "text-orange-300" },
 ];
+
+// ── Drinking game helpers ───────────────────────────────────────────────────
+
+/** Responsible-play note shown wherever the drinking game can be enabled. */
+export const DRINK_NOTE =
+  "21+ only — please drink responsibly. Swap shots for water, a sip, or a silly dare; your call.";
+
+/** Keys whose numeric value is the maximum (ties included). Empty map → []. */
+export function maxKeys(map: Record<string, number>): string[] {
+  const entries = Object.entries(map);
+  if (entries.length === 0) return [];
+  const max = Math.max(...entries.map(([, v]) => v));
+  return entries.filter(([, v]) => v === max).map(([k]) => k);
+}
+
+/** Keys whose numeric value is the minimum (ties included). Empty map → []. */
+export function minKeys(map: Record<string, number>): string[] {
+  const entries = Object.entries(map);
+  if (entries.length === 0) return [];
+  const min = Math.min(...entries.map(([, v]) => v));
+  return entries.filter(([, v]) => v === min).map(([k]) => k);
+}
+
+/** Human-friendly name list: "A", "A & B", or "A, B & C". */
+export function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  if (names.length === 2) return `${names[0]} & ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}`;
+}

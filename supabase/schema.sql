@@ -14,8 +14,12 @@ create table if not exists public.rooms (
   total_rounds   int  not null default 3,
   current_target numeric(3, 1),
   target_seq     int  not null default 0,
+  drinking       boolean not null default false,
   created_at     timestamptz not null default now()
 );
+
+-- Existing projects: add the drinking-game flag if the table predates it.
+alter table public.rooms add column if not exists drinking boolean not null default false;
 
 create table if not exists public.round_results (
   id         uuid primary key default gen_random_uuid(),

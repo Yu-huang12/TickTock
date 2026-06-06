@@ -26,6 +26,7 @@ export interface RoomState {
   totalRounds: number;
   currentTarget: number | null;
   targetSeq: number;
+  drinking: boolean;
 }
 
 export interface RosterPlayer {
@@ -59,6 +60,7 @@ interface RoomContextValue {
   startGame: (totalRounds?: number) => Promise<void>;
   returnToLobby: () => Promise<void>;
   kickPlayer: (playerId: string) => void;
+  setDrinking: (value: boolean) => Promise<void>;
   submitResult: (elapsed: number) => Promise<void>;
   updateProfile: (profile: Profile) => void;
 }
@@ -83,6 +85,7 @@ interface RoomRow {
   total_rounds: number;
   current_target: number | string | null;
   target_seq: number;
+  drinking: boolean | null;
 }
 
 interface ResultDbRow {
@@ -105,6 +108,7 @@ function mapRoom(r: RoomRow): RoomState {
     totalRounds: r.total_rounds,
     currentTarget: r.current_target != null ? Number(r.current_target) : null,
     targetSeq: r.target_seq,
+    drinking: r.drinking ?? false,
   };
 }
 
@@ -439,6 +443,13 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Host-only: toggle the drinking game for the room (only meaningful in the lobby).
+  const setDrinking = useCallback(async (value: boolean) => {
+    const current = roomRef.current;
+    if (!supabase || !current || current.hostId !== myIdRef.current) return;
+    await supabase.from("rooms").update({ drinking: value }).eq("code", current.code);
+  }, []);
+
   // Clear per-round submit guard whenever we are not actively playing (covers rematches).
   useEffect(() => {
     if (room && room.status !== "playing") submittedRef.current.clear();
@@ -477,10 +488,13 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     // results refetch during the grace period can't cancel it and stall the game.
     advancingRef.current = room.currentRound;
     clearAdvanceTimer();
+    // Give players longer to read the "who drinks" callout when the drinking
+    // game is on, otherwise a brief beat before the next round.
+    const grace = room.drinking ? 3600 : 1600;
     advanceTimerRef.current = setTimeout(() => {
       advanceTimerRef.current = null;
       void advance();
-    }, 1600);
+    }, grace);
   }, [room, myId, roster, results, advance, clearAdvanceTimer]);
 
   // Cancel any pending advance when the provider unmounts.
@@ -499,6 +513,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     startGame,
     returnToLobby,
     kickPlayer,
+    setDrinking,
     submitResult,
     updateProfile,
   };
