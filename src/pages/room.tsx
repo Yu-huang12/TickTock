@@ -20,7 +20,7 @@ import {
   UserX,
   Hourglass,
 } from "lucide-react";
-import { useRoom } from "@/lib/room-context";
+import { useRoom, type RosterPlayer } from "@/lib/room-context";
 import { shareInvite } from "@/lib/native";
 import {
   tierFor,
@@ -39,6 +39,45 @@ interface LocalResult {
   diff: number;
   tier: Tier;
   points: number;
+}
+
+interface DisplayInfo {
+  name: string;
+  colorIdx: number;
+}
+
+/**
+ * Online players pick their own name and colour independently, so two can clash.
+ * Resolve a stable, collision-free display name + colour for everyone: processed
+ * in join order (same on every client), duplicate names get a "(2)" suffix and
+ * repeated colours are reassigned to the next free palette slot.
+ */
+function resolveDisplay(roster: RosterPlayer[]): Map<string, DisplayInfo> {
+  const sorted = [...roster].sort(
+    (a, b) => a.joinedAt - b.joinedAt || a.playerId.localeCompare(b.playerId)
+  );
+  const usedColors = new Set<number>();
+  const nameSeen = new Map<string, number>();
+  const out = new Map<string, DisplayInfo>();
+  for (const p of sorted) {
+    let colorIdx =
+      ((p.colorIdx % playerColors.length) + playerColors.length) % playerColors.length;
+    if (usedColors.has(colorIdx)) {
+      for (let i = 0; i < playerColors.length; i++) {
+        if (!usedColors.has(i)) {
+          colorIdx = i;
+          break;
+        }
+      }
+    }
+    usedColors.add(colorIdx);
+
+    const base = p.name.trim() || "Player";
+    const seen = nameSeen.get(base) ?? 0;
+    nameSeen.set(base, seen + 1);
+    out.set(p.playerId, { name: seen === 0 ? base : `${base} (${seen + 1})`, colorIdx });
+  }
+  return out;
 }
 
 export default function RoomPage() {
@@ -66,28 +105,38 @@ export default function RoomPage() {
     setLocalResult(null);
   }, [room?.targetSeq, room?.status]);
 
+  // Collision-free display name + colour per player, shared by all clients.
+  const display = useMemo(() => resolveDisplay(roster), [roster]);
+
   const totals = useMemo(() => {
     const map = new Map<
       string,
       { playerId: string; name: string; colorIdx: number; total: number }
     >();
     for (const p of roster) {
-      map.set(p.playerId, { playerId: p.playerId, name: p.name, colorIdx: p.colorIdx, total: 0 });
+      const d = display.get(p.playerId);
+      map.set(p.playerId, {
+        playerId: p.playerId,
+        name: d?.name ?? p.name,
+        colorIdx: d?.colorIdx ?? p.colorIdx,
+        total: 0,
+      });
     }
     for (const r of results) {
+      const d = display.get(r.playerId);
       const prev = map.get(r.playerId) ?? {
         playerId: r.playerId,
-        name: r.name,
-        colorIdx: r.colorIdx,
+        name: d?.name ?? r.name,
+        colorIdx: d?.colorIdx ?? r.colorIdx,
         total: 0,
       };
       prev.total += r.points;
-      prev.name = r.name;
-      prev.colorIdx = r.colorIdx;
+      prev.name = d?.name ?? r.name;
+      prev.colorIdx = d?.colorIdx ?? r.colorIdx;
       map.set(r.playerId, prev);
     }
     return [...map.values()].sort((a, b) => b.total - a.total);
-  }, [roster, results]);
+  }, [roster, results, display]);
 
   const submittedThisRound = useMemo(
     () => new Set(results.filter((r) => room && r.round === room.currentRound).map((r) => r.playerId)),
@@ -210,7 +259,9 @@ export default function RoomPage() {
             </h2>
             <div className="flex flex-col gap-2">
               {roster.map((p) => {
-                const c = playerColors[p.colorIdx % playerColors.length];
+                const d = display.get(p.playerId) ?? { name: p.name, colorIdx: p.colorIdx };
+                const c = playerColors[d.colorIdx % playerColors.length];
+                const isMe = p.playerId === myId;
                 return (
                   <div
                     key={p.playerId}
@@ -219,21 +270,21 @@ export default function RoomPage() {
                     <span
                       className={`flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br ${c.bg} text-sm font-bold text-white`}
                     >
-                      {(p.name.trim()[0] || "P").toUpperCase()}
+                      {(d.name.trim()[0] || "P").toUpperCase()}
                     </span>
-                    <span className="flex-1 truncate font-medium">{p.name}</span>
+                    <span className="flex-1 truncate font-medium">
+                      {d.name}
+                      {isMe && <span className="text-muted-foreground"> (me)</span>}
+                    </span>
                     {room.hostId === p.playerId && (
                       <Crown className="size-4 text-accent" aria-label="Host" />
                     )}
-                    {p.playerId === myId && (
-                      <span className="text-xs text-muted-foreground">you</span>
-                    )}
-                    {isHost && p.playerId !== myId && (
+                    {isHost && !isMe && (
                       <button
                         onClick={() => kickPlayer(p.playerId)}
                         className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive"
-                        title={`Remove ${p.name}`}
-                        aria-label={`Remove ${p.name}`}
+                        title={`Remove ${d.name}`}
+                        aria-label={`Remove ${d.name}`}
                       >
                         <UserX className="size-4" />
                       </button>
@@ -303,7 +354,10 @@ export default function RoomPage() {
               <div key={p.playerId} className="flex items-center gap-3 px-4 py-3">
                 <span className="w-6 text-center font-bold text-muted-foreground">{i + 1}</span>
                 <span className={`h-6 w-6 rounded-md bg-gradient-to-br ${c.bg}`} />
-                <span className="flex-1 truncate font-medium">{p.name}</span>
+                <span className="flex-1 truncate font-medium">
+                  {p.name}
+                  {p.playerId === myId && <span className="text-muted-foreground"> (me)</span>}
+                </span>
                 {i === 0 && <Trophy className="size-4 text-accent" />}
                 <span className="font-bold tabular-nums">{p.total.toLocaleString()}</span>
               </div>
@@ -393,7 +447,10 @@ export default function RoomPage() {
                 {waitingOn.length > 0 ? (
                   <p className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Hourglass className="size-4 animate-pulse" />
-                    Waiting for {waitingOn.map((p) => p.name).join(", ")}
+                    Waiting for{" "}
+                    {waitingOn
+                      .map((p) => display.get(p.playerId)?.name ?? p.name)
+                      .join(", ")}
                   </p>
                 ) : (
                   <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -439,7 +496,10 @@ export default function RoomPage() {
                 >
                   {(p.name.trim()[0] || "P").toUpperCase()}
                 </span>
-                <span className="flex-1 truncate text-sm font-medium">{p.name}</span>
+                <span className="flex-1 truncate text-sm font-medium">
+                  {p.name}
+                  {p.playerId === myId && <span className="text-muted-foreground"> (me)</span>}
+                </span>
                 {done ? (
                   <Check className="size-3.5 text-emerald-400" aria-label="submitted" />
                 ) : (
