@@ -3,6 +3,7 @@
 // Run with: node scripts/generate-assets.mjs
 
 import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import sharp from "sharp";
@@ -159,6 +160,30 @@ for (const [d, w, h] of splashSizes) {
     .composite([{ input: logo, gravity: "center" }])
     .png()
     .toFile(join(dir, "splash.png"));
+}
+
+// ── iOS app icon + splash (single-size asset catalog) ─────────────────────
+// Capacitor's iOS catalog uses one 1024×1024 icon (no alpha) and a 2732×2732
+// splash. Only write these when the iOS platform has been added.
+const iosIconDir = join(root, "ios", "App", "App", "Assets.xcassets", "AppIcon.appiconset");
+const iosSplashDir = join(root, "ios", "App", "App", "Assets.xcassets", "Splash.imageset");
+if (existsSync(iosIconDir)) {
+  // App Store / device icon must be opaque (flatten onto the brand background).
+  await sharp(Buffer.from(iconOnly))
+    .resize(1024, 1024)
+    .flatten({ background: BG })
+    .png()
+    .toFile(join(iosIconDir, "AppIcon-512@2x.png"));
+}
+if (existsSync(iosSplashDir)) {
+  const iosSplash = await sharp(Buffer.from(splash)).resize(2732, 2732).png().toBuffer();
+  for (const name of [
+    "splash-2732x2732.png",
+    "splash-2732x2732-1.png",
+    "splash-2732x2732-2.png",
+  ]) {
+    await sharp(iosSplash).toFile(join(iosSplashDir, name));
+  }
 }
 
 console.log("Generated app icons + splash for Android, and source assets in /assets.");
