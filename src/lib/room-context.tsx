@@ -57,6 +57,7 @@ interface RoomContextValue {
   joinRoom: (code: string, profile: Profile) => Promise<string>;
   leaveRoom: () => void;
   startGame: (totalRounds?: number) => Promise<void>;
+  returnToLobby: () => Promise<void>;
   submitResult: (elapsed: number) => Promise<void>;
   updateProfile: (profile: Profile) => void;
 }
@@ -351,6 +352,28 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       .eq("code", current.code);
   }, [clearAdvanceTimer]);
 
+  // Host-only: send everyone back to the lobby for a rematch so the host can
+  // tweak rounds or let new players join before starting again.
+  const returnToLobby = useCallback(async () => {
+    const current = roomRef.current;
+    if (!supabase || !current) return;
+    await supabase.from("round_results").delete().eq("room_code", current.code);
+    resultsGenRef.current++;
+    setResults([]);
+    submittedRef.current.clear();
+    advancingRef.current = null;
+    clearAdvanceTimer();
+    await supabase
+      .from("rooms")
+      .update({
+        status: "lobby",
+        current_round: 0,
+        current_target: null,
+        target_seq: current.targetSeq + 1,
+      })
+      .eq("code", current.code);
+  }, [clearAdvanceTimer]);
+
   const submitResult = useCallback(async (elapsed: number) => {
     const current = roomRef.current;
     if (!supabase || !current || current.currentTarget == null) return;
@@ -444,6 +467,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     joinRoom,
     leaveRoom,
     startGame,
+    returnToLobby,
     submitResult,
     updateProfile,
   };

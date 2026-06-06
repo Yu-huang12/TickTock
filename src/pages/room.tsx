@@ -43,7 +43,8 @@ interface LocalResult {
 export default function RoomPage() {
   const { code = "" } = useParams();
   const navigate = useNavigate();
-  const { myId, status, room, roster, results, startGame, submitResult, leaveRoom } = useRoom();
+  const { myId, status, room, roster, results, startGame, returnToLobby, submitResult, leaveRoom } =
+    useRoom();
 
   const [copied, setCopied] = useState(false);
   const [rounds, setRounds] = useState(3);
@@ -302,7 +303,7 @@ export default function RoomPage() {
         <div className="flex gap-3">
           {isHost && (
             <button
-              onClick={() => startGame(room.totalRounds)}
+              onClick={() => returnToLobby()}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 px-5 py-2.5 font-bold text-white shadow-lg transition-transform active:scale-95"
             >
               <Sparkles className="size-4" /> Play again
