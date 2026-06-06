@@ -15,7 +15,6 @@ import {
   Crosshair,
   History,
   Users,
-  Share2,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -26,7 +25,7 @@ import {
   tierEmoji,
   type Tier,
 } from "@/lib/game-utils";
-import { hapticTap, hapticResult, keepAwake, allowSleep, shareInvite } from "@/lib/native";
+import { hapticTap, hapticResult, keepAwake, allowSleep } from "@/lib/native";
 
 type Phase = "idle" | "running" | "result";
 
@@ -133,14 +132,6 @@ export default function HomePage() {
     setTarget(randomTarget());
   };
 
-  const shareScore = async () => {
-    if (!result) return;
-    const text = `I hit ${tierEmoji[result.tier]} ${result.tier} on Tick Tock — ${result.target.toFixed(
-      1
-    )}s target, stopped at ${result.elapsed.toFixed(2)}s for ${result.points.toLocaleString()} pts. Can you beat my inner clock?`;
-    await shareInvite(window.location.origin, { title: "Tick Tock Challenge", text });
-  };
-
   // Spacebar acts as start / stop / next.
   const actionRef = useRef<() => void>(() => {});
   actionRef.current = phase === "idle" ? start : phase === "running" ? stop : next;
@@ -236,12 +227,6 @@ export default function HomePage() {
                   <MiniStat label="You" value={`${result.elapsed.toFixed(2)}s`} />
                   <MiniStat label="Off by" value={`${result.diff.toFixed(2)}s`} />
                 </div>
-                <button
-                  onClick={shareScore}
-                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white/10 active:scale-95"
-                >
-                  <Share2 className="size-4" /> Share score
-                </button>
               </>
             )}
 
