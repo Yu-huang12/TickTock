@@ -133,11 +133,20 @@ export function RoomProvider({ children }: { children: ReactNode }) {
   const joinedAtRef = useRef<number>(Date.now());
   const submittedRef = useRef<Set<number>>(new Set());
   const advancingRef = useRef<number | null>(null);
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const roomRef = useRef<RoomState | null>(null);
   useEffect(() => {
     roomRef.current = room;
   }, [room]);
+
+  /** Cancel any pending round-advance timer. */
+  const clearAdvanceTimer = useCallback(() => {
+    if (advanceTimerRef.current) {
+      clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
+    }
+  }, []);
 
   const refetchResults = useCallback(async (code: string) => {
     if (!supabase) return;
@@ -160,6 +169,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       }
       submittedRef.current.clear();
       advancingRef.current = null;
+      clearAdvanceTimer();
       joinedAtRef.current = Date.now();
       setStatus("connecting");
 
@@ -235,7 +245,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
         }
       });
     },
-    [refetchResults]
+    [refetchResults, clearAdvanceTimer]
   );
 
   const createRoom = useCallback(
@@ -301,12 +311,13 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     channelRef.current = null;
     submittedRef.current.clear();
     advancingRef.current = null;
+    clearAdvanceTimer();
     setRoom(null);
     setRoster([]);
     setResults([]);
     setStatus("idle");
     setError(null);
-  }, []);
+  }, [clearAdvanceTimer]);
 
   const startGame = useCallback(async (totalRounds?: number) => {
     const current = roomRef.current;
@@ -314,6 +325,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     await supabase.from("round_results").delete().eq("room_code", current.code);
     submittedRef.current.clear();
     advancingRef.current = null;
+    clearAdvanceTimer();
     await supabase
       .from("rooms")
       .update({
@@ -324,7 +336,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
         target_seq: current.targetSeq + 1,
       })
       .eq("code", current.code);
-  }, []);
+  }, [clearAdvanceTimer]);
 
   const submitResult = useCallback(async (elapsed: number) => {
     const current = roomRef.current;
@@ -369,19 +381,20 @@ export function RoomProvider({ children }: { children: ReactNode }) {
   // Host-authoritative: once every present player has submitted, advance the round.
   const advance = useCallback(async () => {
     const current = roomRef.current;
-    if (!supabase || !current) return;
-    if (current.currentRound >= current.totalRounds) {
-      await supabase.from("rooms").update({ status: "finished" }).eq("code", current.code);
-    } else {
-      await supabase
-        .from("rooms")
-        .update({
-          current_round: current.currentRound + 1,
-          current_target: randomTarget(),
-          target_seq: current.targetSeq + 1,
-        })
-        .eq("code", current.code);
-    }
+    if (!supabase || !current || current.status !== "playing") return;
+    const { error: advErr } =
+      current.currentRound >= current.totalRounds
+        ? await supabase.from("rooms").update({ status: "finished" }).eq("code", current.code)
+        : await supabase
+            .from("rooms")
+            .update({
+              current_round: current.currentRound + 1,
+              current_target: randomTarget(),
+              target_seq: current.targetSeq + 1,
+            })
+            .eq("code", current.code);
+    // If the host's write failed, release the guard so a later effect run retries.
+    if (advErr) advancingRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -393,10 +406,19 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     const allIn = roster.every((p) => submitted.has(p.playerId));
     if (!allIn) return;
     if (advancingRef.current === room.currentRound) return;
+    // Commit to advancing this round exactly once. The timer lives in a ref
+    // (not the effect cleanup) so a re-render from a presence "sync" or a
+    // results refetch during the grace period can't cancel it and stall the game.
     advancingRef.current = room.currentRound;
-    const timer = setTimeout(() => void advance(), 1600);
-    return () => clearTimeout(timer);
-  }, [room, myId, roster, results, advance]);
+    clearAdvanceTimer();
+    advanceTimerRef.current = setTimeout(() => {
+      advanceTimerRef.current = null;
+      void advance();
+    }, 1600);
+  }, [room, myId, roster, results, advance, clearAdvanceTimer]);
+
+  // Cancel any pending advance when the provider unmounts.
+  useEffect(() => clearAdvanceTimer, [clearAdvanceTimer]);
 
   const value: RoomContextValue = {
     myId,
