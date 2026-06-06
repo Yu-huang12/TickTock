@@ -77,12 +77,12 @@ Trust your inner clock. ⏱️
 
 ## Required metadata
 
-- **Privacy Policy URL:** `https://<your-github-username>.github.io/<repo>/privacy-policy.html`
-  (e.g. `https://yu-huang12.github.io/TickTock/privacy-policy.html` once GitHub Pages is enabled)
-- **Support URL:** `<your support page or GitHub repo URL>`
+- **Privacy Policy URL:** `https://yu-huang12.github.io/TickTock/privacy-policy.html`
+  (live once GitHub Pages is enabled for the `/docs` folder)
+- **Support URL:** `https://github.com/Yu-huang12/TickTock`
 - **Marketing URL (optional):** `<optional landing page>`
-- **Support email:** `<your contact email>`
-- **Copyright:** `2026 <your name>`
+- **Support email:** `yu.309534@gmail.com`
+- **Copyright:** `2026 Yu Huang`
 
 ---
 

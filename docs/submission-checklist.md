@@ -14,8 +14,8 @@ Apple App Store. Work top to bottom. Items marked **(one-time)** only happen for
   Repo → **Settings → Pages → Build and deployment → Source: Deploy from a branch →
   Branch: `main` / folder: `/docs`** → Save. After ~1 min your policy is live at:
   `https://yu-huang12.github.io/TickTock/privacy-policy.html`
-- [ ] **Fill placeholders** in `docs/privacy-policy.html` (`CONTACT_EMAIL_HERE`) and
-  `docs/store-listing.md` (`<...>` support email/URLs). Commit + push.
+- [x] **Fill placeholders** in `docs/privacy-policy.html` and `docs/store-listing.md`
+  (contact email `yu.309534@gmail.com`, support URL, copyright). Commit + push.
 - [ ] **Decide a final app name.** "Tick Tock Challenge" — confirm it's free on each store
   (names must be globally unique).
 - [ ] **Confirm the app ID** is what you want to ship forever: `com.yuhuang.ticktock`
