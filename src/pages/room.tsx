@@ -13,12 +13,14 @@ import {
   Trophy,
   Copy,
   Check,
+  Share2,
   LogOut,
   Loader2,
   Users,
   Hourglass,
 } from "lucide-react";
 import { useRoom } from "@/lib/room-context";
+import { shareInvite } from "@/lib/native";
 import {
   tierFor,
   pointsFor,
@@ -131,13 +133,14 @@ export default function RoomPage() {
     navigate("/online");
   };
 
-  const copyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
+  const shareInviteLink = async () => {
+    const url = `${window.location.origin}/online?room=${code}`;
+    const result = await shareInvite(url, {
+      text: `Join my Tick Tock room! Code: ${code}`,
+    });
+    if (result === "copied") {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard may be blocked; ignore */
     }
   };
 
@@ -163,9 +166,9 @@ export default function RoomPage() {
         <header className="text-center">
           <p className="text-sm uppercase tracking-widest text-muted-foreground">Room code</p>
           <button
-            onClick={copyCode}
+            onClick={shareInviteLink}
             className="mx-auto mt-1 flex items-center gap-2 text-5xl font-black tracking-[0.2em] text-gradient"
-            title="Copy code"
+            title="Share invite link"
           >
             {code}
             {copied ? (
@@ -183,6 +186,20 @@ export default function RoomPage() {
             <p className="text-xs text-muted-foreground">
               Scan with any phone camera, or share the code.
             </p>
+            <button
+              onClick={shareInviteLink}
+              className="mt-1 flex items-center justify-center gap-2 rounded-lg bg-muted/40 px-4 py-2 text-sm font-semibold transition hover:bg-muted/60"
+            >
+              {copied ? (
+                <>
+                  <Check className="size-4 text-emerald-400" /> Link copied
+                </>
+              ) : (
+                <>
+                  <Share2 className="size-4" /> Share invite
+                </>
+              )}
+            </button>
           </Card>
 
           <Card className="app-card gap-3 p-5">

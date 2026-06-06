@@ -26,6 +26,45 @@ export async function initNative(): Promise<void> {
   }
 }
 
+/**
+ * Share an invite link. Opens the native share sheet on iOS/Android (and the
+ * Web Share sheet on mobile browsers that support it); otherwise copies the
+ * URL to the clipboard. Returns "shared" or "copied" so callers can show the
+ * right feedback, or "failed" if nothing worked.
+ */
+export async function shareInvite(
+  url: string,
+  opts: { title?: string; text?: string } = {}
+): Promise<"shared" | "copied" | "failed"> {
+  const { title = "Tick Tock", text = "Join my Tick Tock room!" } = opts;
+
+  if (isNative) {
+    try {
+      const { Share } = await import("@capacitor/share");
+      await Share.share({ title, text, url });
+      return "shared";
+    } catch {
+      /* share plugin unavailable or dismissed — fall through to clipboard */
+    }
+  } else if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+    try {
+      await navigator.share({ title, text, url });
+      return "shared";
+    } catch (err) {
+      // User cancelled the share sheet — don't fall back to a copy.
+      if (err instanceof DOMException && err.name === "AbortError") return "shared";
+      /* Web Share failed — fall through to clipboard */
+    }
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    return "copied";
+  } catch {
+    return "failed";
+  }
+}
+
 /** A short tactile tap for start/stop button presses. No-op on web. */
 export async function hapticTap(): Promise<void> {
   if (!isNative) return;
