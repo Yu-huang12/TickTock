@@ -81,8 +81,8 @@ export default function HowToPlayPage() {
         </div>
         <p className="text-xs text-muted-foreground">
           Land it dead-on for the full{" "}
-          <span className="font-semibold text-foreground">1,000 points</span>. The further you
-          drift, the faster points fall away.
+          <span className="font-semibold text-foreground">1,000 points</span>. Points slide down
+          evenly the further you drift — a full second off scores zero.
         </p>
       </Card>
 

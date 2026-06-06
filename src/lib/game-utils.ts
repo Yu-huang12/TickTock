@@ -13,10 +13,8 @@ export function tierFor(diff: number): Tier {
 }
 
 export function pointsFor(diff: number): number {
-  if (diff < 0.1) return 1000;
-  if (diff < 0.3) return Math.round(700 + (0.3 - diff) * 1000);
-  if (diff < 0.6) return Math.round(400 + (0.6 - diff) * 1000);
-  return Math.max(0, Math.round(200 * Math.exp(-diff)));
+  // Continuous score: 1000 for a dead-on stop, falling linearly to 0 at 1.0s off.
+  return Math.max(0, Math.round(1000 * (1 - diff)));
 }
 
 export const tierStyle: Record<Tier, string> = {
