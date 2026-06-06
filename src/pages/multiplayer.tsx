@@ -74,7 +74,17 @@ export default function MultiplayerPage() {
           break;
         }
       }
-      return [...ps, { id: newId(), name: `Player ${ps.length + 1}`, colorIdx, total: 0 }];
+      // Name with the smallest unused "Player N" so add/remove cycles never
+      // produce duplicate default names (length-based numbering collides).
+      const usedNums = new Set(
+        ps
+          .map((p) => /^Player (\d+)$/.exec(p.name)?.[1])
+          .filter((n): n is string => n != null)
+          .map(Number)
+      );
+      let n = 1;
+      while (usedNums.has(n)) n++;
+      return [...ps, { id: newId(), name: `Player ${n}`, colorIdx, total: 0 }];
     });
 
   const removePlayer = (id: string) =>
