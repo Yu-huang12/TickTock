@@ -15,6 +15,7 @@ import {
   Crosshair,
   History,
   Users,
+  Share2,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -25,7 +26,7 @@ import {
   tierEmoji,
   type Tier,
 } from "@/lib/game-utils";
-import { hapticTap, hapticResult, keepAwake, allowSleep } from "@/lib/native";
+import { hapticTap, hapticResult, keepAwake, allowSleep, shareInvite } from "@/lib/native";
 
 type Phase = "idle" | "running" | "result";
 
@@ -36,6 +37,20 @@ interface RoundRecord {
   diff: number;
   tier: Tier;
   points: number;
+}
+
+const HISTORY_KEY = "ticktock.solo.history";
+
+/** Load saved Solo history from local storage, tolerating missing/corrupt data. */
+function loadHistory(): RoundRecord[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as RoundRecord[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 const tierBar: Record<Tier, string> = {
@@ -49,8 +64,17 @@ export default function HomePage() {
   const [target, setTarget] = useState(() => randomTarget());
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<RoundRecord | null>(null);
-  const [history, setHistory] = useState<RoundRecord[]>([]);
+  const [history, setHistory] = useState<RoundRecord[]>(loadHistory);
   const startRef = useRef(0);
+
+  // Persist Solo history so stats survive reloads and app restarts.
+  useEffect(() => {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch {
+      /* storage full or unavailable — ignore */
+    }
+  }, [history]);
 
   const score = useMemo(() => history.reduce((a, r) => a + r.points, 0), [history]);
   const avgOff = useMemo(
@@ -107,6 +131,14 @@ export default function HomePage() {
     setResult(null);
     setPhase("idle");
     setTarget(randomTarget());
+  };
+
+  const shareScore = async () => {
+    if (!result) return;
+    const text = `I hit ${tierEmoji[result.tier]} ${result.tier} on Tick Tock — ${result.target.toFixed(
+      1
+    )}s target, stopped at ${result.elapsed.toFixed(2)}s for ${result.points.toLocaleString()} pts. Can you beat my inner clock?`;
+    await shareInvite(window.location.origin, { title: "Tick Tock Challenge", text });
   };
 
   // Spacebar acts as start / stop / next.
@@ -204,6 +236,12 @@ export default function HomePage() {
                   <MiniStat label="You" value={`${result.elapsed.toFixed(2)}s`} />
                   <MiniStat label="Off by" value={`${result.diff.toFixed(2)}s`} />
                 </div>
+                <button
+                  onClick={shareScore}
+                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white/10 active:scale-95"
+                >
+                  <Share2 className="size-4" /> Share score
+                </button>
               </>
             )}
 
