@@ -58,6 +58,7 @@ interface RoomContextValue {
   leaveRoom: () => void;
   startGame: (totalRounds?: number) => Promise<void>;
   returnToLobby: () => Promise<void>;
+  kickPlayer: (playerId: string) => void;
   submitResult: (elapsed: number) => Promise<void>;
   updateProfile: (profile: Profile) => void;
 }
@@ -233,6 +234,25 @@ export function RoomProvider({ children }: { children: ReactNode }) {
         }
       );
 
+      // The host can remove a player by broadcasting a kick. Only the targeted
+      // client acts on it: it tears down and shows a message.
+      channel.on("broadcast", { event: "kick" }, ({ payload }) => {
+        if (!payload || payload.playerId !== id) return;
+        if (channelRef.current) {
+          void sb.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+        submittedRef.current.clear();
+        advancingRef.current = null;
+        clearAdvanceTimer();
+        resultsGenRef.current++;
+        setResults([]);
+        setRoster([]);
+        setRoom(null);
+        setStatus("idle");
+        setError("The host removed you from the room.");
+      });
+
       channel.subscribe(async (st) => {
         if (st === "SUBSCRIBED") {
           const { data: roomRow } = await sb
@@ -396,6 +416,16 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     if (insErr) submittedRef.current.delete(current.currentRound);
   }, []);
 
+  // Host-only: remove a player from the room by broadcasting a kick that the
+  // targeted client acts on. Presence then drops them from everyone's roster.
+  const kickPlayer = useCallback((playerId: string) => {
+    const channel = channelRef.current;
+    const current = roomRef.current;
+    if (!channel || !current) return;
+    if (current.hostId !== myIdRef.current || playerId === myIdRef.current) return;
+    void channel.send({ type: "broadcast", event: "kick", payload: { playerId } });
+  }, []);
+
   const updateProfile = useCallback((profile: Profile) => {
     profileRef.current = profile;
     const channel = channelRef.current;
@@ -468,6 +498,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     leaveRoom,
     startGame,
     returnToLobby,
+    kickPlayer,
     submitResult,
     updateProfile,
   };

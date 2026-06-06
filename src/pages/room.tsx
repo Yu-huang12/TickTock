@@ -17,6 +17,7 @@ import {
   LogOut,
   Loader2,
   Users,
+  UserX,
   Hourglass,
 } from "lucide-react";
 import { useRoom } from "@/lib/room-context";
@@ -43,7 +44,7 @@ interface LocalResult {
 export default function RoomPage() {
   const { code = "" } = useParams();
   const navigate = useNavigate();
-  const { myId, status, room, roster, results, startGame, returnToLobby, submitResult, leaveRoom } =
+  const { myId, status, room, roster, results, startGame, returnToLobby, kickPlayer, submitResult, leaveRoom } =
     useRoom();
 
   const [copied, setCopied] = useState(false);
@@ -226,6 +227,16 @@ export default function RoomPage() {
                     )}
                     {p.playerId === myId && (
                       <span className="text-xs text-muted-foreground">you</span>
+                    )}
+                    {isHost && p.playerId !== myId && (
+                      <button
+                        onClick={() => kickPlayer(p.playerId)}
+                        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/15 hover:text-destructive"
+                        title={`Remove ${p.name}`}
+                        aria-label={`Remove ${p.name}`}
+                      >
+                        <UserX className="size-4" />
+                      </button>
                     )}
                   </div>
                 );

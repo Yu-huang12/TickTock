@@ -38,7 +38,7 @@ function extractCode(text: string): string | null {
 export default function OnlinePage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { createRoom, joinRoom } = useRoom();
+  const { createRoom, joinRoom, error: roomError } = useRoom();
 
   const [name, setName] = useState("Player");
   const [colorIdx, setColorIdx] = useState(0);
@@ -261,8 +261,8 @@ export default function OnlinePage() {
         </button>
       </Card>
 
-      {error && (
-        <p className="text-center text-sm font-medium text-destructive">{error}</p>
+      {(error || roomError) && (
+        <p className="text-center text-sm font-medium text-destructive">{error || roomError}</p>
       )}
     </div>
   );
