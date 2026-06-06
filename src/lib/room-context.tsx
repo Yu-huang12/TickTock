@@ -134,6 +134,9 @@ export function RoomProvider({ children }: { children: ReactNode }) {
   const submittedRef = useRef<Set<number>>(new Set());
   const advancingRef = useRef<number | null>(null);
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Bumped whenever results are intentionally reset (e.g. a rematch) so any
+  // in-flight refetch from the previous game is ignored when it resolves.
+  const resultsGenRef = useRef(0);
 
   const roomRef = useRef<RoomState | null>(null);
   useEffect(() => {
@@ -150,11 +153,14 @@ export function RoomProvider({ children }: { children: ReactNode }) {
 
   const refetchResults = useCallback(async (code: string) => {
     if (!supabase) return;
+    const gen = resultsGenRef.current;
     const { data } = await supabase
       .from("round_results")
       .select("*")
       .eq("room_code", code)
       .order("created_at", { ascending: true });
+    // A reset happened while this query was in flight — drop the stale data.
+    if (gen !== resultsGenRef.current) return;
     if (data) setResults((data as ResultDbRow[]).map(mapResult));
   }, []);
 
@@ -170,6 +176,9 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       submittedRef.current.clear();
       advancingRef.current = null;
       clearAdvanceTimer();
+      // Drop any results from a previously connected room.
+      resultsGenRef.current++;
+      setResults([]);
       joinedAtRef.current = Date.now();
       setStatus("connecting");
 
@@ -323,6 +332,10 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     const current = roomRef.current;
     if (!supabase || !current) return;
     await supabase.from("round_results").delete().eq("room_code", current.code);
+    // Clear results locally and invalidate in-flight refetches so the host
+    // doesn't read the previous game's round-1 results and instantly advance.
+    resultsGenRef.current++;
+    setResults([]);
     submittedRef.current.clear();
     advancingRef.current = null;
     clearAdvanceTimer();

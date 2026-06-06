@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { Analytics } from "@vercel/analytics/react";
 import { RoomProvider } from "./lib/room-context";
 import Layout from "./pages/_layout";
 import HomePage from "./pages/index";
@@ -26,6 +27,7 @@ function App() {
           </Routes>
         </RoomProvider>
       </Router>
+      <Analytics />
     </QueryClientProvider>
   );
 }
