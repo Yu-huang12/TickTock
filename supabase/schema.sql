@@ -18,8 +18,9 @@ create table if not exists public.rooms (
   created_at     timestamptz not null default now()
 );
 
--- Existing projects: add the drinking-game flag if the table predates it.
-alter table public.rooms add column if not exists drinking boolean not null default false;
+-- If you created the rooms table before the drinking-game feature, add the column:
+--   alter table public.rooms add column if not exists drinking boolean not null default false;
+
 
 create table if not exists public.round_results (
   id         uuid primary key default gen_random_uuid(),

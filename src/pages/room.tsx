@@ -3,7 +3,6 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Segmented } from "@/components/ui/segmented";
-import { Switch } from "@/components/ui/switch";
 import { Confetti } from "@/components/Confetti";
 import { QrInvite } from "@/components/QrInvite";
 import {
@@ -19,7 +18,9 @@ import {
   Loader2,
   Users,
   UserX,
-  Beer,
+  Wine,
+  SkipForward,
+  ArrowRight,
   Hourglass,
 } from "lucide-react";
 import { useRoom, type RosterPlayer } from "@/lib/room-context";
@@ -31,9 +32,7 @@ import {
   tierEmoji,
   celebrates,
   playerColors,
-  maxKeys,
-  minKeys,
-  joinNames,
+  furthestPlayers,
   DRINK_NOTE,
   type Tier,
 } from "@/lib/game-utils";
@@ -90,7 +89,7 @@ function resolveDisplay(roster: RosterPlayer[]): Map<string, DisplayInfo> {
 export default function RoomPage() {
   const { code = "" } = useParams();
   const navigate = useNavigate();
-  const { myId, status, room, roster, results, startGame, returnToLobby, kickPlayer, setDrinking, submitResult, leaveRoom } =
+  const { myId, status, room, roster, results, startGame, returnToLobby, kickPlayer, setDrinking, forceNext, requestNext, submitResult, leaveRoom } =
     useRoom();
 
   const [copied, setCopied] = useState(false);
@@ -151,15 +150,22 @@ export default function RoomPage() {
   );
   const waitingOn = roster.filter((p) => !submittedThisRound.has(p.playerId));
 
-  // Drinking game: names of whoever landed furthest off in the current round.
-  const roundDrinkNames = useMemo(() => {
+  // Drinking mode: who's furthest from the target this round (all submitted).
+  const roundDrinkerNames = useMemo(() => {
     if (!room?.drinking) return [];
-    const diffs: Record<string, number> = {};
-    for (const r of results) {
-      if (r.round === room.currentRound) diffs[r.playerId] = r.diff;
-    }
-    return maxKeys(diffs).map((id) => display.get(id)?.name ?? "Player");
+    const entries = results
+      .filter((r) => r.round === room.currentRound)
+      .map((r) => ({ id: r.playerId, diff: r.diff }));
+    const ids = furthestPlayers(entries);
+    return ids.map((id) => display.get(id)?.name ?? "Player");
   }, [room?.drinking, room?.currentRound, results, display]);
+
+  // Drinking mode: the overall loser(s) at game end (lowest total).
+  const loserNames = useMemo(() => {
+    if (!room?.drinking || totals.length < 2) return [];
+    const min = totals[totals.length - 1].total;
+    return totals.filter((p) => p.total === min).map((p) => p.name);
+  }, [room?.drinking, totals]);
 
   const startPlay = () => {
     setLocalPhase("running");
@@ -316,30 +322,43 @@ export default function RoomPage() {
           </Card>
         </div>
 
-        <Card className="app-card gap-3 p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 font-semibold">
-              <Beer className="size-5 text-amber-400" /> Drinking game
-            </h2>
-            <Switch
-              checked={room.drinking}
-              onChange={(v) => setDrinking(v)}
-              disabled={!isHost}
-              aria-label="Toggle drinking game"
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {isHost
-              ? "Each round the furthest from the target takes a shot; the overall loser finishes their drink. "
-              : `The host has the drinking game ${room.drinking ? "on" : "off"}. `}
-            {DRINK_NOTE}
-          </p>
-        </Card>
-
         {isHost ? (
           <Card className="app-card gap-4 p-5">
             <h2 className="font-semibold">Rounds per player</h2>
             <Segmented options={ROUND_OPTIONS} value={rounds} onChange={setRounds} />
+
+            <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-3">
+              <button
+                type="button"
+                onClick={() => setDrinking(!room.drinking)}
+                aria-pressed={room.drinking}
+                className="flex items-center justify-between gap-3 text-left"
+              >
+                <span className="flex items-center gap-2 font-semibold">
+                  <Wine className="size-5 text-pink-400" /> Drinking game
+                </span>
+                <span
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    room.drinking ? "bg-gradient-to-r from-pink-500 to-purple-500" : "bg-muted"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-transform ${
+                      room.drinking ? "translate-x-5" : "translate-x-0.5"
+                    }`}
+                  />
+                </span>
+              </button>
+              <p className="text-xs text-muted-foreground">
+                {room.drinking
+                  ? "Furthest from the target each round takes a shot 🍺 — overall loser finishes their drink."
+                  : "Turn on to add a party penalty for whoever's furthest off."}
+              </p>
+              {room.drinking && (
+                <p className="text-[11px] text-muted-foreground/80">{DRINK_NOTE}</p>
+              )}
+            </div>
+
             <button
               onClick={() => startGame(rounds)}
               disabled={roster.length < 1}
@@ -352,6 +371,11 @@ export default function RoomPage() {
           <Card className="app-card items-center gap-2 p-6 text-center">
             <Hourglass className="size-6 animate-pulse text-secondary" />
             <p className="font-medium">Waiting for the host to start&hellip;</p>
+            {room.drinking && (
+              <p className="flex items-center gap-1.5 text-sm font-medium text-pink-300">
+                <Wine className="size-4" /> Drinking game is on
+              </p>
+            )}
           </Card>
         )}
 
@@ -368,12 +392,6 @@ export default function RoomPage() {
   // ─────────────────────────────────────────────────────── FINISHED
   if (room.status === "finished") {
     const winner = totals[0];
-    const drinkLosers =
-      room.drinking && totals.length > 1
-        ? minKeys(Object.fromEntries(totals.map((p) => [p.playerId, p.total]))).map(
-            (id) => totals.find((p) => p.playerId === id)?.name || "Player"
-          )
-        : [];
     return (
       <div className="relative mx-auto flex max-w-xl flex-col items-center gap-6">
         <Confetti />
@@ -387,6 +405,14 @@ export default function RoomPage() {
               {winner.name}
             </h1>
             <p className="text-xl font-bold text-accent">{winner.total.toLocaleString()} pts</p>
+          </div>
+        )}
+
+        {loserNames.length > 0 && (
+          <div className="flex w-full flex-col items-center gap-1 rounded-2xl border border-pink-500/30 bg-pink-500/10 px-4 py-4 text-center">
+            <Wine className="size-6 text-pink-400" />
+            <p className="font-bold">{loserNames.join(" & ")} finishes their drink 🍺</p>
+            <p className="text-[11px] text-muted-foreground">{DRINK_NOTE}</p>
           </div>
         )}
 
@@ -407,13 +433,6 @@ export default function RoomPage() {
             );
           })}
         </Card>
-
-        {drinkLosers.length > 0 && (
-          <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm font-semibold text-amber-200">
-            <Beer className="size-5 shrink-0 text-amber-400" />
-            {joinNames(drinkLosers)} {drinkLosers.length > 1 ? "finish" : "finishes"} their drink!
-          </div>
-        )}
 
         <div className="flex gap-3">
           {isHost && (
@@ -440,8 +459,15 @@ export default function RoomPage() {
 
   // ──────────────────────────────────────────────────────── PLAYING
   const celebrate = localResult && celebrates(localResult.diff);
+  const everyoneSubmitted = waitingOn.length === 0;
+  const isFinalRound = room.currentRound >= room.totalRounds;
+  // Drinking mode: once everyone has stopped, show a popup naming who drinks;
+  // anyone can tap Next to move on (no auto-advance).
+  const showDrinkPopup =
+    room.drinking && everyoneSubmitted && localPhase === "done" && roundDrinkerNames.length > 0;
 
   return (
+    <>
     <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2">
         <Card className="app-card relative overflow-hidden p-0">
@@ -501,11 +527,9 @@ export default function RoomPage() {
                       .map((p) => display.get(p.playerId)?.name ?? p.name)
                       .join(", ")}
                   </p>
-                ) : room.drinking && roundDrinkNames.length > 0 ? (
-                  <p className="flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-sm font-semibold text-amber-200">
-                    <Beer className="size-4 shrink-0 text-amber-400" />
-                    {joinNames(roundDrinkNames)} {roundDrinkNames.length > 1 ? "take" : "takes"} a
-                    shot!
+                ) : room.drinking ? (
+                  <p className="flex items-center gap-2 text-sm font-medium text-pink-300">
+                    <Wine className="size-4" /> Time to drink&hellip;
                   </p>
                 ) : (
                   <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -567,6 +591,15 @@ export default function RoomPage() {
             );
           })}
         </div>
+        {isHost && (
+          <button
+            onClick={() => forceNext()}
+            className="mt-1 flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground"
+            title="Skip to the next round now (unplayed players score 0)"
+          >
+            <SkipForward className="size-3.5" /> Skip to next round
+          </button>
+        )}
         <button
           onClick={handleLeave}
           className="mt-1 flex items-center justify-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
@@ -575,5 +608,28 @@ export default function RoomPage() {
         </button>
       </Card>
     </div>
+
+    {showDrinkPopup && (
+      <div className="safe-top safe-bottom fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur">
+        <Card className="app-card w-full max-w-sm">
+          <div className="flex flex-col items-center gap-4 px-6 py-8 text-center">
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-purple-600 shadow-lg">
+              <Wine className="size-9 text-white" />
+            </span>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              Furthest from {room.currentTarget?.toFixed(1)}s
+            </p>
+            <h2 className="text-3xl font-black">{roundDrinkerNames.join(" & ")}</h2>
+            <p className="text-lg font-bold text-pink-300">takes a shot 🍺</p>
+            <button onClick={() => requestNext()} className="btn-cta mt-1">
+              {isFinalRound ? "See results" : "Next round"}
+              <ArrowRight className="size-5" />
+            </button>
+            <p className="text-[11px] text-muted-foreground/80">{DRINK_NOTE}</p>
+          </div>
+        </Card>
+      </div>
+    )}
+    </>
   );
 }

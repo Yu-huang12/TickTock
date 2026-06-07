@@ -60,7 +60,9 @@ interface RoomContextValue {
   startGame: (totalRounds?: number) => Promise<void>;
   returnToLobby: () => Promise<void>;
   kickPlayer: (playerId: string) => void;
-  setDrinking: (value: boolean) => Promise<void>;
+  setDrinking: (drinking: boolean) => Promise<void>;
+  forceNext: () => Promise<void>;
+  requestNext: () => Promise<void>;
   submitResult: (elapsed: number) => Promise<void>;
   updateProfile: (profile: Profile) => void;
 }
@@ -140,6 +142,9 @@ export function RoomProvider({ children }: { children: ReactNode }) {
   const submittedRef = useRef<Set<number>>(new Set());
   const advancingRef = useRef<number | null>(null);
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Always points at the latest advance() so realtime handlers created early
+  // (in connect) can invoke it without a stale closure.
+  const advanceRef = useRef<() => Promise<void>>(async () => {});
   // Bumped whenever results are intentionally reset (e.g. a rematch) so any
   // in-flight refetch from the previous game is ignored when it resolves.
   const resultsGenRef = useRef(0);
@@ -255,6 +260,16 @@ export function RoomProvider({ children }: { children: ReactNode }) {
         setRoom(null);
         setStatus("idle");
         setError("The host removed you from the room.");
+      });
+
+      // In drinking mode anyone can press "Next round"; non-hosts broadcast the
+      // request and the host (authoritative writer) performs the advance.
+      channel.on("broadcast", { event: "next" }, () => {
+        const cur = roomRef.current;
+        if (!cur || cur.hostId !== id || cur.status !== "playing") return;
+        clearAdvanceTimer();
+        advancingRef.current = cur.targetSeq;
+        void advanceRef.current();
       });
 
       channel.subscribe(async (st) => {
@@ -398,6 +413,16 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       .eq("code", current.code);
   }, [clearAdvanceTimer]);
 
+  // Host-only: toggle the drinking-game rule for the room (lobby only).
+  const setDrinking = useCallback(async (drinking: boolean) => {
+    const current = roomRef.current;
+    if (!supabase || !current) return;
+    if (current.hostId !== myIdRef.current) return;
+    // Optimistic local update so the host's toggle feels instant.
+    setRoom((r) => (r ? { ...r, drinking } : r));
+    await supabase.from("rooms").update({ drinking }).eq("code", current.code);
+  }, []);
+
   const submitResult = useCallback(async (elapsed: number) => {
     const current = roomRef.current;
     if (!supabase || !current || current.currentTarget == null) return;
@@ -443,13 +468,6 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Host-only: toggle the drinking game for the room (only meaningful in the lobby).
-  const setDrinking = useCallback(async (value: boolean) => {
-    const current = roomRef.current;
-    if (!supabase || !current || current.hostId !== myIdRef.current) return;
-    await supabase.from("rooms").update({ drinking: value }).eq("code", current.code);
-  }, []);
-
   // Clear per-round submit guard whenever we are not actively playing (covers rematches).
   useEffect(() => {
     if (room && room.status !== "playing") submittedRef.current.clear();
@@ -459,9 +477,17 @@ export function RoomProvider({ children }: { children: ReactNode }) {
   const advance = useCallback(async () => {
     const current = roomRef.current;
     if (!supabase || !current || current.status !== "playing") return;
-    const { error: advErr } =
+    // Compare-and-swap on target_seq: if another advance already moved the room
+    // on (double-fire from the timer + force-next, or two effect runs), this
+    // update matches 0 rows instead of skipping a round.
+    const { data, error: advErr } =
       current.currentRound >= current.totalRounds
-        ? await supabase.from("rooms").update({ status: "finished" }).eq("code", current.code)
+        ? await supabase
+            .from("rooms")
+            .update({ status: "finished" })
+            .eq("code", current.code)
+            .eq("target_seq", current.targetSeq)
+            .select()
         : await supabase
             .from("rooms")
             .update({
@@ -469,10 +495,18 @@ export function RoomProvider({ children }: { children: ReactNode }) {
               current_target: randomTarget(),
               target_seq: current.targetSeq + 1,
             })
-            .eq("code", current.code);
-    // If the host's write failed, release the guard so a later effect run retries.
-    if (advErr) advancingRef.current = null;
+            .eq("code", current.code)
+            .eq("target_seq", current.targetSeq)
+            .select();
+    // If the write failed or matched nothing, release the guard so a later
+    // effect run can retry rather than stalling the game.
+    if (advErr || !data || data.length === 0) advancingRef.current = null;
   }, []);
+
+  // Keep the ref pointing at the latest advance for realtime handlers.
+  useEffect(() => {
+    advanceRef.current = advance;
+  }, [advance]);
 
   useEffect(() => {
     if (!room || !myId || room.hostId !== myId || room.status !== "playing") return;
@@ -482,23 +516,55 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     );
     const allIn = roster.every((p) => submitted.has(p.playerId));
     if (!allIn) return;
-    if (advancingRef.current === room.currentRound) return;
+    // Drinking mode advances manually: a "who drinks" popup appears and anyone
+    // taps Next. So don't auto-advance here — leave it to requestNext/forceNext.
+    if (room.drinking) return;
+    // Guard by target_seq (unique per round-instance, monotonic across games)
+    // rather than currentRound (which repeats every game and could falsely
+    // block advancing after a rematch).
+    if (advancingRef.current === room.targetSeq) return;
     // Commit to advancing this round exactly once. The timer lives in a ref
     // (not the effect cleanup) so a re-render from a presence "sync" or a
     // results refetch during the grace period can't cancel it and stall the game.
-    advancingRef.current = room.currentRound;
+    advancingRef.current = room.targetSeq;
     clearAdvanceTimer();
-    // Give players longer to read the "who drinks" callout when the drinking
-    // game is on, otherwise a brief beat before the next round.
-    const grace = room.drinking ? 3600 : 1600;
     advanceTimerRef.current = setTimeout(() => {
       advanceTimerRef.current = null;
       void advance();
-    }, grace);
+    }, 1600);
   }, [room, myId, roster, results, advance, clearAdvanceTimer]);
 
   // Cancel any pending advance when the provider unmounts.
   useEffect(() => clearAdvanceTimer, [clearAdvanceTimer]);
+
+  // Host-only: skip to the next round immediately, even if some players haven't
+  // submitted (e.g. someone lagged out). Their missing result counts as 0.
+  const forceNext = useCallback(async () => {
+    const current = roomRef.current;
+    if (!supabase || !current || current.status !== "playing") return;
+    if (current.hostId !== myIdRef.current) return;
+    clearAdvanceTimer();
+    advancingRef.current = current.targetSeq;
+    await advance();
+  }, [advance, clearAdvanceTimer]);
+
+  // Drinking-mode "Next round": anyone may trigger it. The host advances
+  // directly; a non-host broadcasts a request the host acts on.
+  const requestNext = useCallback(async () => {
+    const current = roomRef.current;
+    if (!supabase || !current || current.status !== "playing") return;
+    if (current.hostId === myIdRef.current) {
+      clearAdvanceTimer();
+      advancingRef.current = current.targetSeq;
+      await advance();
+    } else {
+      await channelRef.current?.send({
+        type: "broadcast",
+        event: "next",
+        payload: { targetSeq: current.targetSeq },
+      });
+    }
+  }, [advance, clearAdvanceTimer]);
 
   const value: RoomContextValue = {
     myId,
@@ -514,6 +580,8 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     returnToLobby,
     kickPlayer,
     setDrinking,
+    forceNext,
+    requestNext,
     submitResult,
     updateProfile,
   };

@@ -13,7 +13,7 @@ import {
   ArrowRight,
   RotateCcw,
   Trophy,
-  Beer,
+  Wine,
 } from "lucide-react";
 import {
   randomTarget,
@@ -23,14 +23,12 @@ import {
   tierEmoji,
   celebrates,
   playerColors,
-  maxKeys,
-  joinNames,
+  furthestPlayers,
   DRINK_NOTE,
   type Tier,
 } from "@/lib/game-utils";
 import { hapticTap, hapticResult, keepAwake, allowSleep } from "@/lib/native";
 import { Segmented } from "@/components/ui/segmented";
-import { Switch } from "@/components/ui/switch";
 
 interface Player {
   id: string;
@@ -68,10 +66,10 @@ export default function MultiplayerPage() {
   const [target, setTarget] = useState(0);
   const [turnPhase, setTurnPhase] = useState<TurnPhase>("idle");
   const [turnResult, setTurnResult] = useState<TurnResult | null>(null);
-  // Per-player diff for the current round (drinking game: furthest drinks).
+  // Each player's diff for the current round, to find who drinks (furthest off).
   const [roundDiffs, setRoundDiffs] = useState<Record<string, number>>({});
-  // Names called out to drink after a round, shown before advancing.
-  const [roundDrink, setRoundDrink] = useState<string[] | null>(null);
+  // When set, a "who drinks this round" callout is shown before advancing.
+  const [roundDrink, setRoundDrink] = useState<{ names: string[]; final: boolean } | null>(null);
   const startRef = useRef(0);
 
   const addPlayer = () =>
@@ -119,7 +117,6 @@ export default function MultiplayerPage() {
     setTurnPhase("idle");
     setTurnResult(null);
     setRoundDiffs({});
-    setRoundDrink(null);
     setPhase("play");
   };
 
@@ -137,15 +134,38 @@ export default function MultiplayerPage() {
     const points = pointsFor(diff);
     setTurnResult({ elapsed, diff, tier, points });
     setPlayers((ps) => ps.map((p, i) => (i === turnIdx ? { ...p, total: p.total + points } : p)));
-    setRoundDiffs((rd) => ({ ...rd, [players[turnIdx].id]: diff }));
+    setRoundDiffs((d) => ({ ...d, [players[turnIdx].id]: diff }));
     setTurnPhase("done");
     void hapticResult(celebrates(diff));
     void allowSleep();
   };
 
-  // After the last player of a round, move on (next round or results).
-  const proceedAfterRound = () => {
-    setRoundDrink(null);
+  const advance = () => {
+    const isLastPlayer = turnIdx === players.length - 1;
+    if (!isLastPlayer) {
+      setTurnIdx((i) => i + 1);
+      setTurnPhase("idle");
+      setTurnResult(null);
+      return;
+    }
+    // Round complete. In drinking mode, pause to call out who drinks this round.
+    if (drinkingMode && players.length > 1) {
+      const entries = players
+        .filter((p) => p.id in roundDiffs)
+        .map((p) => ({ id: p.id, diff: roundDiffs[p.id] }));
+      const drinkerIds = furthestPlayers(entries);
+      const names = players
+        .filter((p) => drinkerIds.includes(p.id))
+        .map((p) => p.name || "Player");
+      if (names.length > 0) {
+        setRoundDrink({ names, final: round >= totalRounds });
+        return;
+      }
+    }
+    goNextRoundOrResults();
+  };
+
+  const goNextRoundOrResults = () => {
     if (round >= totalRounds) {
       setPhase("results");
       return;
@@ -158,26 +178,9 @@ export default function MultiplayerPage() {
     setRoundDiffs({});
   };
 
-  const advance = () => {
-    const isLastPlayer = turnIdx === players.length - 1;
-    if (!isLastPlayer) {
-      setTurnIdx((i) => i + 1);
-      setTurnPhase("idle");
-      setTurnResult(null);
-      return;
-    }
-    // Drinking game: whoever was furthest off this round takes a shot.
-    if (drinkingMode && players.length > 1) {
-      const loserIds = maxKeys(roundDiffs);
-      const names = loserIds.map(
-        (id) => players.find((p) => p.id === id)?.name || "Player"
-      );
-      if (names.length > 0) {
-        setRoundDrink(names);
-        return;
-      }
-    }
-    proceedAfterRound();
+  const continueAfterDrink = () => {
+    setRoundDrink(null);
+    goNextRoundOrResults();
   };
 
   // Spacebar acts as start / stop / next during a player's turn.
@@ -186,12 +189,12 @@ export default function MultiplayerPage() {
     phase !== "play"
       ? () => {}
       : roundDrink
-        ? proceedAfterRound
+        ? continueAfterDrink
         : turnPhase === "idle"
-          ? startTurn
-          : turnPhase === "running"
-            ? stopTurn
-            : advance;
+        ? startTurn
+        : turnPhase === "running"
+          ? stopTurn
+          : advance;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -284,20 +287,33 @@ export default function MultiplayerPage() {
         </Card>
 
         <Card className="app-card gap-3 p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 font-semibold">
-              <Beer className="size-5 text-amber-400" /> Drinking game
-            </h2>
-            <Switch
-              checked={drinkingMode}
-              onChange={setDrinkingMode}
-              aria-label="Toggle drinking game"
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setDrinkingMode((v) => !v)}
+            aria-pressed={drinkingMode}
+            className="flex items-center justify-between gap-3 text-left"
+          >
+            <span className="flex items-center gap-2 font-semibold">
+              <Wine className="size-5 text-pink-400" /> Drinking game
+            </span>
+            <span
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                drinkingMode ? "bg-gradient-to-r from-pink-500 to-purple-500" : "bg-muted"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-transform ${
+                  drinkingMode ? "translate-x-5" : "translate-x-0.5"
+                }`}
+              />
+            </span>
+          </button>
           <p className="text-xs text-muted-foreground">
-            Each round, whoever lands furthest from the target takes a shot — and the overall
-            loser finishes their drink. {DRINK_NOTE}
+            {drinkingMode
+              ? "Furthest from the target each round takes a shot 🍺 — overall loser finishes their drink."
+              : "Turn on to add a party penalty for whoever's furthest off."}
           </p>
+          {drinkingMode && <p className="text-[11px] text-muted-foreground/80">{DRINK_NOTE}</p>}
         </Card>
 
         <button onClick={startGame} className="btn-cta">
@@ -310,11 +326,10 @@ export default function MultiplayerPage() {
   // -------------------------------------------------------------- RESULTS
   if (phase === "results") {
     const winner = ranking[0];
-    const drinkLosers =
+    const loserTotal = ranking.length ? ranking[ranking.length - 1].total : 0;
+    const losers =
       drinkingMode && players.length > 1
-        ? maxKeys(Object.fromEntries(players.map((p) => [p.id, -p.total]))).map(
-            (id) => players.find((p) => p.id === id)?.name || "Player"
-          )
+        ? ranking.filter((p) => p.total === loserTotal)
         : [];
     return (
       <div className="relative mx-auto flex max-w-xl flex-col items-center gap-6">
@@ -327,6 +342,16 @@ export default function MultiplayerPage() {
           </h1>
           <p className="text-xl font-bold text-accent">{winner.total.toLocaleString()} pts</p>
         </div>
+
+        {losers.length > 0 && (
+          <div className="flex w-full flex-col items-center gap-1 rounded-2xl border border-pink-500/30 bg-pink-500/10 px-4 py-4 text-center">
+            <Wine className="size-6 text-pink-400" />
+            <p className="font-bold">
+              {losers.map((p) => p.name || "Player").join(" & ")} finishes their drink 🍺
+            </p>
+            <p className="text-[11px] text-muted-foreground">{DRINK_NOTE}</p>
+          </div>
+        )}
 
         <Card className="app-card w-full gap-0 divide-y divide-border/60 p-0">
           {ranking.map((p, i) => {
@@ -342,13 +367,6 @@ export default function MultiplayerPage() {
             );
           })}
         </Card>
-
-        {drinkLosers.length > 0 && (
-          <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center text-sm font-semibold text-amber-200">
-            <Beer className="size-5 shrink-0 text-amber-400" />
-            {joinNames(drinkLosers)} {drinkLosers.length > 1 ? "finish" : "finishes"} their drink!
-          </div>
-        )}
 
         <div className="flex gap-3">
           <Button onClick={startGame} className="gap-2">
@@ -368,25 +386,39 @@ export default function MultiplayerPage() {
   const celebrate = turnResult && celebrates(turnResult.diff);
   const isFinalTurn = turnIdx === players.length - 1 && round >= totalRounds;
 
-  // Drinking game: between rounds, call out who lands furthest off this round.
+  // Drinking-mode callout shown after a round completes, before advancing.
   if (roundDrink) {
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-6 text-center">
+      <div className="mx-auto flex max-w-md flex-col items-center gap-6">
         <Badge variant="outline">
-          Round {round}/{totalRounds}
+          Round {round}/{totalRounds} complete
         </Badge>
-        <Card className="app-card flex w-full flex-col items-center gap-4 p-8">
-          <Beer className="size-16 text-amber-400" />
-          <h2 className="text-3xl font-black">
-            {joinNames(roundDrink)} {roundDrink.length > 1 ? "take" : "takes"} a shot!
-          </h2>
-          <p className="text-sm text-muted-foreground">Furthest from the target this round.</p>
-          <button onClick={proceedAfterRound} className="btn-cta mt-2">
-            {round >= totalRounds ? "See results" : "Next round"}
-            <ArrowRight className="size-5" />
-          </button>
-          <p className="text-[11px] text-muted-foreground">{DRINK_NOTE}</p>
+        <Card className="app-card w-full">
+          <div className="flex flex-col items-center gap-4 px-6 py-10 text-center">
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-purple-600 shadow-lg">
+              <Wine className="size-9 text-white" />
+            </span>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">
+              Furthest from {target.toFixed(1)}s
+            </p>
+            <h2 className="text-3xl font-black">
+              {roundDrink.names.join(" & ")}
+            </h2>
+            <p className="text-lg font-bold text-pink-300">takes a shot 🍺</p>
+            <button onClick={continueAfterDrink} className="btn-cta mt-2">
+              {roundDrink.final ? "See results" : "Next round"}
+              <ArrowRight className="size-5" />
+            </button>
+            <p className="text-[11px] text-muted-foreground/80">{DRINK_NOTE}</p>
+          </div>
         </Card>
+        <p className="text-xs text-muted-foreground">
+          or press{" "}
+          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-foreground">
+            Space
+          </kbd>{" "}
+          to continue
+        </p>
       </div>
     );
   }
