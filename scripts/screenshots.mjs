@@ -1,6 +1,7 @@
-// Captures App Store / Play Store screenshots at 1290x2796 (iPhone 6.7").
+// Captures App Store / Play Store screenshots.
+// Default: 1290x2796 (iPhone 6.7"). Override with env vars, e.g. the 6.5" set:
+//   SHOT_W=428 SHOT_H=926 SHOT_DIR=screenshots-6.5 node scripts/screenshots.mjs
 // Requires the dev server running at http://localhost:5173.
-// Run with: node scripts/screenshots.mjs
 
 import { chromium } from "playwright";
 import { mkdirSync } from "node:fs";
@@ -8,15 +9,18 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const outDir = join(root, "assets", "screenshots");
+const VW = Number(process.env.SHOT_W) || 430;
+const VH = Number(process.env.SHOT_H) || 932;
+const SCALE = Number(process.env.SHOT_SCALE) || 3;
+const outDir = join(root, "assets", process.env.SHOT_DIR || "screenshots");
 mkdirSync(outDir, { recursive: true });
 
 const BASE = "http://localhost:5173";
 
 const browser = await chromium.launch();
 const context = await browser.newContext({
-  viewport: { width: 430, height: 932 },
-  deviceScaleFactor: 3,
+  viewport: { width: VW, height: VH },
+  deviceScaleFactor: SCALE,
 });
 // Hide scrollbars so they never appear in captures.
 await context.addInitScript(() => {
@@ -79,4 +83,4 @@ await settle();
 await shot("06-pass-and-play");
 
 await browser.close();
-console.log("Screenshots written to assets/screenshots (1290x2796).");
+console.log(`Screenshots written to ${outDir} (${VW * SCALE}x${VH * SCALE}).`);
